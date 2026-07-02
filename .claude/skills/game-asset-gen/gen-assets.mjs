@@ -37,12 +37,16 @@ const DEFAULT_LOCATION =
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE_CLOUD_PLATFORM = "https://www.googleapis.com/auth/cloud-platform";
 
-// Nano Banana 2 = gemini-3.1-flash-image. gemini-3-pro-image-preview is remapped
-// to it on Vertex (same mapping the 3d-prompt pipeline uses).
+// Default = Nano Banana 2 Lite (gemini-3.1-flash-lite-image) — cheapest image tier
+// (~$0.034/img) and lighter PNGs, plenty for game sprites. Override GEMINI_IMAGE_MODEL
+// for the heavier tiers: "gemini-3.1-flash-image" (Nano Banana 2) or the pro preview
+// alias below. Pretty preview names are remapped to real Vertex ids.
 const IMAGE_MODEL =
-  process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image-preview";
+  process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-lite-image";
 const VERTEX_MODEL_OVERRIDE = {
   "gemini-3-pro-image-preview": "gemini-3.1-flash-image",
+  "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
+  "nano-banana-2": "gemini-3.1-flash-image",
 };
 const MAX_RETRIES = 5;
 
@@ -63,9 +67,40 @@ const die = (m) => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// ---- output subfolder (nested layout) -------------------------------------
+// Where an asset's PNG(s) land under outDir. Flat ("") unless nested layout is on
+// (-g / manifest "layout":"nested"). Explicit asset.dir always wins. Auto path is
+// derived from category (falling back to type) + id:
+//   character -> Characters/<Char>/<action>   (Char = id prefix, action = id tail
+//                                               minus the trailing _<frame> index)
+//   stage/bg/tile -> Environments   ui/icon -> UI   fx -> FX   concept -> Concept
+// The loader MUST read recursively (e.g. Unity Resources.LoadAll<Texture2D>("Art"))
+// so a flat id still resolves regardless of which subfolder holds the file.
+function subFor(asset, nested) {
+  if (asset.dir) return asset.dir; // explicit override, always honored
+  if (!nested) return "";
+  const cat = (asset.category || "").toLowerCase();
+  const type = (asset.type || "").toLowerCase();
+  const id = asset.id || "";
+  const isChar =
+    cat === "character" ||
+    (!cat && (type === "sprite" || type === "spritesheet") && id.includes("_"));
+  if (isChar) {
+    const us = id.indexOf("_");
+    const char = us > 0 ? id.slice(0, us) : id;
+    const action = us > 0 ? id.slice(us + 1).replace(/_[0-9]+$/, "") : "idle";
+    return `Characters/${char.charAt(0).toUpperCase()}${char.slice(1)}/${action}`;
+  }
+  if (cat === "stage" || type === "bg" || type === "tile") return "Environments";
+  if (cat === "ui" || type === "ui" || type === "icon") return "UI";
+  if (cat === "fx") return "FX";
+  if (cat === "concept" || type === "concept") return "Concept";
+  return cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : "";
+}
+
 // ---- arg parsing ----------------------------------------------------------
 function parseArgs(argv) {
-  const o = { manifest: "", outDir: "", only: "", force: false, dry: false, concurrency: 0 };
+  const o = { manifest: "", outDir: "", only: "", force: false, dry: false, concurrency: 0, group: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -73,6 +108,7 @@ function parseArgs(argv) {
     else if (a === "-i") o.only = argv[++i] || "";
     else if (a === "-c") o.concurrency = Math.max(1, Number(argv[++i]) || 0);
     else if (a === "-F") o.force = true;
+    else if (a === "-g" || a === "--group") o.group = true;
     else if (a === "-d") o.dry = true;
     else if (a === "-h" || a === "--help") {
       printHelp();
@@ -93,6 +129,9 @@ function printHelp() {
   -c N     max assets generated in parallel (default 4, or GEN_CONCURRENCY env).
            ref-dependent assets still wait for their ref; spritesheet frames stay serial.
   -F       force: re-generate even if the PNG already exists
+  -g       group into subfolders (Characters/<Char>/<action>, Environments, UI, FX,
+           Concept) from each asset's category/id. Also on via manifest "layout":"nested".
+           A per-asset "dir" field overrides the auto path. Loader must read recursively.
   -d       dry run: print the composed prompt for each asset, generate nothing
   -h       help
 
@@ -317,50 +356,75 @@ function throttleDelayMs(resp, attempt) {
 const VALID_SIZES = new Set(["1K", "2K"]);
 const coerceSize = (s) => (VALID_SIZES.has(s) ? s : "1K");
 
+// Fallback chain: on a throttled model (429/503) exhausting its retries, rotate to
+// the next image model rather than failing the asset. Cheapest first, escalating —
+// flash-lite ($0.034) -> 2.5-flash ($0.039) -> flash / Nano Banana 2 ($0.067). The
+// primary (GEMINI_IMAGE_MODEL) leads; the rest are deduped fallbacks. Override the
+// whole chain with GEMINI_IMAGE_FALLBACKS (comma-separated) if desired.
+const IMAGE_MODEL_CHAIN = (() => {
+  const extra = (process.env.GEMINI_IMAGE_FALLBACKS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const chain = extra.length
+    ? [IMAGE_MODEL, ...extra]
+    : [IMAGE_MODEL, "gemini-2.5-flash-image", "gemini-3.1-flash-image"];
+  return [...new Set(chain)];
+})();
+
 // contents: full multi-turn history (so spritesheet frames stay consistent).
 async function generateWithRetry(contents, size) {
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const { url, headers } = await genaiRequest(IMAGE_MODEL, "generateContent");
-      const resp = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            responseModalities: ["IMAGE"],
-            imageConfig: { imageSize: coerceSize(size) },
-          },
-        }),
-      });
-      if (resp.status === 503 || resp.status === 429) {
-        if (attempt === MAX_RETRIES)
+  let lastErr;
+  for (let mi = 0; mi < IMAGE_MODEL_CHAIN.length; mi++) {
+    const model = IMAGE_MODEL_CHAIN[mi];
+    let throttled = false;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const { url, headers } = await genaiRequest(model, "generateContent");
+        const resp = await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              responseModalities: ["IMAGE"],
+              imageConfig: { imageSize: coerceSize(size) },
+            },
+          }),
+        });
+        if (resp.status === 503 || resp.status === 429) {
+          throttled = true;
+          lastErr = new Error(`Vertex AI throttled (${resp.status}) on ${model}`);
+          if (attempt === MAX_RETRIES) break; // exhausted this model → rotate
+          await sleep(throttleDelayMs(resp, attempt));
+          continue;
+        }
+        if (!resp.ok)
           throw new Error(
-            `Vertex AI throttled (${resp.status}) after ${MAX_RETRIES} attempts`,
+            `Vertex AI image gen failed (${resp.status}): ${await resp.text()}`,
           );
-        await sleep(throttleDelayMs(resp, attempt));
-        continue;
-      }
-      if (!resp.ok)
-        throw new Error(
-          `Vertex AI image gen failed (${resp.status}): ${await resp.text()}`,
+        const data = await resp.json();
+        const part = data.candidates?.[0]?.content?.parts?.find(
+          (p) => p.inlineData,
         );
-      const data = await resp.json();
-      const part = data.candidates?.[0]?.content?.parts?.find(
-        (p) => p.inlineData,
-      );
-      if (!part?.inlineData)
-        throw new Error("No image in Gemini response — returned text only");
-      return {
-        imageData: part.inlineData.data,
-        thoughtSignature: part.thoughtSignature,
-      };
-    } catch (e) {
-      if (attempt === MAX_RETRIES) throw e;
-      await sleep(2000 * attempt);
+        if (!part?.inlineData)
+          throw new Error("No image in Gemini response — returned text only");
+        return {
+          imageData: part.inlineData.data,
+          thoughtSignature: part.thoughtSignature,
+        };
+      } catch (e) {
+        lastErr = e;
+        if (attempt === MAX_RETRIES) break;
+        await sleep(2000 * attempt);
+      }
     }
+    // Only rotate models on throttling; a genuine error would just repeat.
+    const next = IMAGE_MODEL_CHAIN[mi + 1];
+    if (throttled && next) warn(`${model} throttled — falling back to ${next}`);
+    else if (!throttled) break; // non-throttle failure: don't burn the chain
   }
-  throw new Error("Unreachable");
+  throw lastErr || new Error("all image models failed");
 }
 
 // Generate one asset. For spritesheet (frames > 1) generate N consistent frames
@@ -432,6 +496,7 @@ async function main() {
 
   const outDir = o.outDir || manifest.outDir || "Assets/Resources/Art";
   const style = manifest.style || "";
+  const nested = o.group || manifest.layout === "nested";
 
   if (!o.dry && !resolveProject())
     die(
@@ -461,7 +526,7 @@ async function main() {
 
     const firstName =
       (asset.frames || 1) === 1 ? `${asset.id}.png` : `${asset.id}_0.png`;
-    if (!o.force && existsSync(join(outDir, firstName))) {
+    if (!o.force && existsSync(join(outDir, subFor(asset, nested), firstName))) {
       ok(`${asset.id} — exists, skipped (use -F to force)`);
       skipped++;
       continue;
@@ -484,9 +549,12 @@ async function main() {
       const refBuf = asset.ref ? generated.get(asset.ref) : undefined;
       say(`${asset.id} (${asset.type}${asset.frames > 1 ? `, ${asset.frames}f` : ""})`);
       const imgs = await generateAsset(asset, style, refBuf);
+      const sub = subFor(asset, nested);
+      const destDir = sub ? join(outDir, sub) : outDir;
+      if (sub) await mkdir(destDir, { recursive: true });
       for (const img of imgs) {
-        await writeFile(join(outDir, img.name), img.buf);
-        ok(`${img.name} (${img.buf.length} bytes)`);
+        await writeFile(join(destDir, img.name), img.buf);
+        ok(`${sub ? sub + "/" : ""}${img.name} (${img.buf.length} bytes)`);
       }
       if (imgs[0]) generated.set(asset.id, imgs[0].buf); // first frame for downstream refs
       done++;

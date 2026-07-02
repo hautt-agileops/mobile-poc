@@ -18,6 +18,12 @@ namespace Fighter
         public string name = "Attack";
         public MoveKind kind = MoveKind.Normal;
 
+        // Optional sprite-state tag for animation. When set, the fighter shows
+        // "<charId>_<spriteKey>" while this move is active (e.g. "lp", "hp",
+        // "special", "special_blade"). Empty → the fighter falls back to its
+        // generic attack pose. Purely visual; never affects frame data or the gate.
+        public string spriteKey = "";
+
         // Timeline (frames)
         public int startup = 6;
         public int active = 3;

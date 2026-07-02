@@ -25,10 +25,20 @@ JSON
 cd "$DIR"
 echo "=== deploying to Vercel project: $NAME ==="
 npx --no-install vercel link --yes --project "$NAME" >/dev/null 2>&1 || true
-npx --no-install vercel deploy --prod --yes 2>&1 | grep -vE "npm notice|Changelog|To update"
+DEPLOY_OUT="$(npx --no-install vercel deploy --prod --yes 2>&1 | grep -vE "npm notice|Changelog|To update")"
+printf '%s\n' "$DEPLOY_OUT"
 
-# Stable production alias for a Vercel project is <project-name>.vercel.app.
-GAME_URL="https://${NAME}.vercel.app"
+# Resolve the REAL production URL from Vercel's output rather than assuming
+# <name>.vercel.app: when that domain is already owned by another project, Vercel
+# silently assigns a suffixed alias (e.g. <name>-drab.vercel.app), and hardcoding the
+# plain name would point the portal at a stale/other deployment. Prefer the stable
+# project alias ("Aliased:"), fall back to the per-deploy URL ("Production:"), then the
+# conventional name. Strip any trailing ANSI/whitespace.
+_clean() { sed -E 's/\x1b\[[0-9;]*m//g; s/[[:space:]]+$//'; }
+GAME_URL="$(printf '%s\n' "$DEPLOY_OUT" | _clean | sed -nE 's#.*Aliased:[[:space:]]*(https://[^[:space:]]+).*#\1#p' | tail -1)"
+[ -n "$GAME_URL" ] || GAME_URL="$(printf '%s\n' "$DEPLOY_OUT" | _clean | sed -nE 's#.*Production:[[:space:]]*(https://[^[:space:]]+).*#\1#p' | tail -1)"
+[ -n "$GAME_URL" ] || GAME_URL="https://${NAME}.vercel.app"
+echo "=== game URL resolved: $GAME_URL ==="
 
 # 4. Register the build in the shared Studio portal UNDER ITS CATEGORY, so it shows up
 #    alongside the 3D gallery. The portal has one category dir per kind:
@@ -37,7 +47,7 @@ GAME_URL="https://${NAME}.vercel.app"
 #    A category is just <portal>/<category>/{manifest.json, <id>.png}. This skill deploys into
 #    PORTAL_CATEGORY (default "games"). Best-effort: never fail the build deploy on this — the
 #    build keeps its own deployment; the portal only lists + embeds it. Skip with NO_PORTAL=1.
-PORTAL_VIEWER_DIR="${PORTAL_VIEWER_DIR:-$HERE/../../../../../.claude/skills/3d-prompt/viewer}"
+PORTAL_VIEWER_DIR="${PORTAL_VIEWER_DIR:-$HERE/../../3d-prompt/viewer}"
 PORTAL_CATEGORY="${PORTAL_CATEGORY:-games}"
 if [ "${NO_PORTAL:-0}" = "1" ]; then
   echo "=== portal registration skipped (NO_PORTAL=1) ==="

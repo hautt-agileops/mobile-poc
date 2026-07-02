@@ -10,6 +10,7 @@ this JSON is what actually drives generation. Keep them in sync, but the JSON wi
 | `project` | string   | no       | label, printed at run start |
 | `style`   | string   | **yes**  | global art-style guide prepended to EVERY asset prompt — palette, line weight, era/genre, lighting, render style. This is what keeps the set coherent. |
 | `outDir`  | string   | no       | where PNGs land. Default `Assets/Resources/Art`. Resolved relative to cwd (run from project root) or override with `-o`. Keep it under `Assets/Resources/`. |
+| `layout`  | string   | no       | `"nested"` → group PNGs into subfolders under `outDir` (`Characters/<Char>/<action>`, `Environments`, `UI`, `FX`, `Concept`) derived from each asset's `category`/`id`. Same as the `-g` CLI flag. Omit → flat. **The runtime loader must read recursively** (Unity: `Resources.LoadAll<Texture2D>("Art")` indexed by name) so a flat `id` still resolves. |
 | `assets`  | object[] | **yes**  | one entry per asset, generated in array order (so a `ref` target appears before the asset that refs it). |
 
 ## Per-asset
@@ -18,7 +19,8 @@ this JSON is what actually drives generation. Keep them in sync, but the JSON wi
 |--------------|----------|----------|---------|---------|
 | `id`         | string   | **yes**  | —       | Unity-friendly stem: `[a-z0-9_]`. Becomes `<id>.png` AND the `Resources.Load`/`SpriteLoader.Get` key. |
 | `type`       | string   | **yes**  | —       | `sprite` \| `spritesheet` \| `tile` \| `ui` \| `icon` \| `bg` \| `concept`. Picks the framing directive. |
-| `category`   | string   | no       | —       | free label for `ASSETS.md` grouping (character / stage / ui / fx). Not used by the generator. |
+| `category`   | string   | no       | —       | grouping label (`character` / `stage` / `ui` / `fx` / `concept`). Drives `ASSETS.md` grouping AND, under `layout:"nested"` / `-g`, the output subfolder (see `dir`). Ignored for the flat default. |
+| `dir`        | string   | no       | —       | explicit output subfolder under `outDir` (e.g. `Characters/Vyre/walk`). Overrides the auto nested path. Honored even without `layout:"nested"`. Loader must read recursively. |
 | `prompt`     | string   | **yes**  | —       | the subject description. Concrete: what it is, pose/state, colors, key shapes. No need to repeat the global `style`. |
 | `size`       | string   | no       | `"1K"`  | Vertex image size — `"1K"` or `"2K"` ONLY. Any other value (e.g. `"512"`) is coerced to `"1K"` (Vertex rejects it otherwise). |
 | `background` | string   | no       | `transparent` for sprites | `transparent` (alpha cutout — game sprites) \| `white` (flat fill) \| `scene` (painted backdrop — for `bg`/`concept`). |

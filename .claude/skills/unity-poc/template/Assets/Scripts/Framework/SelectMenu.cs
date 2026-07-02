@@ -35,9 +35,29 @@ namespace Fighter
             sc.referenceResolution = new Vector2(1280, 720);
             go.AddComponent<GraphicRaycaster>();
 
+            // Env backdrop: the stage art (same id the match uses), shown behind the
+            // menu so the select screen isn't a black void. Dim the panel over it.
+            var bgSprite = string.IsNullOrEmpty(GameBootstrap.StageBgId)
+                ? null
+                : SpriteLoader.Get(GameBootstrap.StageBgId);
+            if (bgSprite != null)
+            {
+                var bgGo = new GameObject("backdrop");
+                bgGo.transform.SetParent(canvas.transform, false);
+                var bgImg = bgGo.AddComponent<Image>();
+                bgImg.sprite = bgSprite;
+                bgImg.color = Color.white;
+                var brt = bgImg.rectTransform;
+                brt.anchorMin = Vector2.zero;
+                brt.anchorMax = Vector2.one;
+                brt.offsetMin = brt.offsetMax = Vector2.zero;
+            }
+
             Panel(
                 canvas.transform,
-                new Color(0.05f, 0.05f, 0.08f, 1f),
+                bgSprite != null
+                    ? new Color(0.03f, 0.03f, 0.05f, 0.55f)
+                    : new Color(0.05f, 0.05f, 0.08f, 1f),
                 Vector2.zero,
                 Vector2.one,
                 Vector2.zero
@@ -106,7 +126,18 @@ namespace Fighter
             var go = new GameObject("card_" + d.id);
             go.transform.SetParent(canvas.transform, false);
             var img = go.AddComponent<Image>();
-            img.color = d.bodyColor;
+            // Use the generated portrait if present; else the flat faction-color box.
+            var portrait = SpriteLoader.Get(d.id + "_portrait");
+            if (portrait != null)
+            {
+                img.sprite = portrait;
+                img.color = Color.white;
+                img.preserveAspect = true;
+            }
+            else
+            {
+                img.color = d.bodyColor;
+            }
             var rt = img.rectTransform;
             rt.anchorMin = rt.anchorMax = anchor;
             rt.pivot = new Vector2(0.5f, 0.5f);

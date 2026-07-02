@@ -58,13 +58,29 @@ def already_transparent(im):
     return near0 / (im.width * im.height) > 0.12
 
 
+# Brightness of a pixel (mean of RGB) — used to tell the two-tone checkerboard
+# (wide brightness spread inside one near-grey region) from uniform interior art.
+def _bright(px):
+    return (px[0] + px[1] + px[2]) // 3
+
+
+# A near-grey region is the fake checkerboard (not legit art) when its brightness
+# spans at least this many levels — nano-banana's two checker tones differ ~40, a
+# solid armor plate / cream belly stays well under it.
+CHECKER_SPREAD = 30
+
+
 def key_image(path):
     im = Image.open(path).convert("RGBA")
-    if already_transparent(im):
-        return False, "already has alpha"
+    had_alpha = already_transparent(im)
     w, h = im.size
     px = im.load()
     cleared = bytearray(w * h)  # 0/1 mask of pixels to make transparent
+    # Pixels already transparent (a prior key cleared the exterior) count as
+    # background boundaries so the interior pass can still reach enclosed pockets.
+    for i in range(w * h):
+        if px[i % w, i // w][3] < 8:
+            cleared[i] = 1
     q = deque()
 
     def push(x, y):
@@ -72,19 +88,52 @@ def key_image(path):
             cleared[y * w + x] = 1
             q.append((x, y))
 
-    # seed from every border pixel
-    for x in range(w):
-        push(x, 0)
-        push(x, h - 1)
-    for y in range(h):
-        push(0, y)
-        push(w - 1, y)
-    while q:
-        x, y = q.popleft()
-        push(x + 1, y)
-        push(x - 1, y)
-        push(x, y + 1)
-        push(x, y - 1)
+    # seed from every border pixel (skip when the exterior was already keyed)
+    if not had_alpha:
+        for x in range(w):
+            push(x, 0)
+            push(x, h - 1)
+        for y in range(h):
+            push(0, y)
+            push(w - 1, y)
+        while q:
+            x, y = q.popleft()
+            push(x + 1, y)
+            push(x - 1, y)
+            push(x, y + 1)
+            push(x, y - 1)
+
+    # INTERIOR pass: background enclosed by the silhouette (e.g. between the legs)
+    # is never reached from the border. Walk each remaining near-grey connected
+    # region; if its brightness spans two tones it's the checkerboard → clear it,
+    # otherwise it's solid interior art (cream/armor) → keep it opaque.
+    visited = bytearray(w * h)
+    for sy in range(h):
+        for sx in range(w):
+            si = sy * w + sx
+            if cleared[si] or visited[si] or not is_bg(px[sx, sy]):
+                continue
+            comp = []
+            lo = hi = _bright(px[sx, sy])
+            cq = deque([(sx, sy)])
+            visited[si] = 1
+            while cq:
+                x, y = cq.popleft()
+                comp.append((x, y))
+                b = _bright(px[x, y])
+                if b < lo:
+                    lo = b
+                if b > hi:
+                    hi = b
+                for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                    if 0 <= nx < w and 0 <= ny < h:
+                        ni = ny * w + nx
+                        if not visited[ni] and not cleared[ni] and is_bg(px[nx, ny]):
+                            visited[ni] = 1
+                            cq.append((nx, ny))
+            if hi - lo >= CHECKER_SPREAD:  # two-tone → checkerboard, clear it
+                for x, y in comp:
+                    cleared[y * w + x] = 1
 
     # apply alpha=0 to flood-filled background
     n_cleared = 0
@@ -126,9 +175,12 @@ def main(argv):
         if a == "-d":
             i += 1
             d = argv[i]
-            files += [
-                os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith(".png")
-            ]
+            # recurse: nested layouts (Characters/<Char>/<action>/…) put PNGs in
+            # subfolders, so walk the whole tree, not just the top level.
+            for root, _dirs, names in os.walk(d):
+                files += [
+                    os.path.join(root, f) for f in sorted(names) if f.endswith(".png")
+                ]
         elif a == "--skip":
             i += 1
             skip = set(s.strip() for s in argv[i].split(","))

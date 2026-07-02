@@ -8,6 +8,13 @@ namespace Fighter
     // The single scene object. Builds stage, fighters, HUD; runs select -> fight -> match loop.
     public class GameBootstrap : MonoBehaviour
     {
+        // Optional generated-art stage ids, set by the Game layer before boot. When a
+        // sprite exists for StageBgId, BuildStage renders it as the backdrop (with
+        // optional far/fore parallax layers) instead of the primitive bands/pillars.
+        public static string StageBgId = "";
+        public static string StageFarId = "";
+        public static string StageForeId = "";
+
         enum Phase
         {
             Select,
@@ -146,6 +153,18 @@ namespace Fighter
                 false
             );
             floor.transform.position = new Vector3(0, groundY - 0.3f, 0);
+
+            // Generated-art backdrop: if a stage sprite was set + generated, use it in
+            // place of the primitive bands/pillars. Parallax layers are optional.
+            var bg = string.IsNullOrEmpty(StageBgId) ? null : SpriteLoader.Get(StageBgId);
+            if (bg != null)
+            {
+                StageLayer(StageForeId, 2, 5f, 1.0f);   // foreground silhouette (front)
+                StageSprite(bg, -2, 12f);               // main backdrop
+                StageLayer(StageFarId, -4, 14f, 1.0f);  // far parallax (behind bg)
+                return;
+            }
+
             // back wall gradient (two bands)
             var band1 = PrimitiveArt.Box(
                 transform,
@@ -175,6 +194,32 @@ namespace Fighter
                 );
                 pil.transform.position = new Vector3(i * 6.5f, 3.5f, 0.8f);
             }
+        }
+
+        // Render a stage sprite centered behind the action, scaled to targetHeight
+        // (world units). Fighters draw at sortingOrder 5, so keep backdrop orders < 5.
+        SpriteRenderer StageSprite(Sprite s, int order, float targetHeight)
+        {
+            var go = new GameObject("stage_" + order);
+            go.transform.SetParent(transform, false);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = s;
+            sr.sortingOrder = order;
+            sr.color = Color.white;
+            float h = s.bounds.size.y;
+            float k = h > 0f ? targetHeight / h : 1f;
+            go.transform.localScale = new Vector3(k, k, 1f);
+            go.transform.position = new Vector3(0f, 3.2f, 5f);
+            return sr;
+        }
+
+        void StageLayer(string id, int order, float targetHeight, float alpha)
+        {
+            if (string.IsNullOrEmpty(id)) return;
+            var s = SpriteLoader.Get(id);
+            if (s == null) return;
+            var sr = StageSprite(s, order, targetHeight);
+            if (alpha < 1f) sr.color = new Color(1f, 1f, 1f, alpha);
         }
 
         // ---------- SELECT ----------

@@ -31,6 +31,9 @@ namespace Fighter
         public float height = 1.8f;
         public float width = 0.7f;
         public int maxHealth = 1000;
+        // Target on-screen height for generated sprite art (world units). 0 → auto
+        // (height * 1.4). Only used when a "<id>_idle" sprite exists; ignored for boxes.
+        public float artHeight = 0f;
 
         // Moves
         public MoveData light;

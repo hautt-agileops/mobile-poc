@@ -10,10 +10,27 @@ namespace Fighter
     // in WebGL, unlike StreamingAssets + UnityWebRequest.
     public static class SpriteLoader
     {
-        const string Root = "Art/"; // under Assets/Resources/
+        const string Root = "Art"; // under Assets/Resources/ (folder, no trailing slash)
 
         static readonly Dictionary<string, Sprite> _cache = new Dictionary<string, Sprite>();
         static readonly HashSet<string> _missing = new HashSet<string>();
+
+        // Texture index keyed by filename stem, built once from a RECURSIVE
+        // Resources.LoadAll on the Art folder. Resources.Load(path) does NOT search
+        // subfolders, so a nested layout (Art/Characters/Vyre/…, Art/Environments/…,
+        // from game-asset-gen's `-g`/`layout:"nested"`) would otherwise miss; LoadAll
+        // walks the whole tree and we index by tex.name so a flat `id` lookup resolves
+        // regardless of subfolder. Manifest ids are unique, so stems never collide.
+        static Dictionary<string, Texture2D> _texIndex;
+
+        static Dictionary<string, Texture2D> TexIndex()
+        {
+            if (_texIndex != null) return _texIndex;
+            _texIndex = new Dictionary<string, Texture2D>();
+            foreach (var t in Resources.LoadAll<Texture2D>(Root))
+                _texIndex[t.name] = t; // t.name == filename without extension
+            return _texIndex;
+        }
 
         // Pixels-per-unit for generated sprites. 100 = a 1K (1024px) sprite is ~10
         // world units tall; callers scale to taste via SpriteRenderer.transform.
@@ -34,7 +51,7 @@ namespace Fighter
             if (_cache.TryGetValue(id, out var s)) return s;
             if (_missing.Contains(id)) return null;
 
-            var tex = Resources.Load<Texture2D>(Root + id);
+            TexIndex().TryGetValue(id, out var tex);
             if (tex == null)
             {
                 _missing.Add(id);

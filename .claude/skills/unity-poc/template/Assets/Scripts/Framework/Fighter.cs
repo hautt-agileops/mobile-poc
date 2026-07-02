@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Fighter
@@ -59,6 +60,16 @@ namespace Fighter
         SpriteRenderer outline;
         public Transform visualRoot;
 
+        // Generated-sprite art path (guarded by useArt). When a "<id>_idle" PNG exists
+        // the fighter renders animated sprites instead of PrimitiveArt boxes; otherwise
+        // the box path is untouched. Purely visual — never affects logic or the gate.
+        bool useArt;
+        readonly Dictionary<string, Sprite[]> _frameCache = new Dictionary<string, Sprite[]>();
+        string _animKey = "";
+        int _animIdx;
+        float _animClock;
+        const float ArtFps = 10f;
+
         public bool Alive => state != FState.Dead;
         public float DamageMult => installed ? def.installDamageMult : 1f;
         public float SpeedMult => installed ? def.installSpeedMult : 1f;
@@ -78,6 +89,29 @@ namespace Fighter
         {
             visualRoot = new GameObject("visual").transform;
             visualRoot.SetParent(transform, false);
+            // Apply the initial facing now. FaceOpponent only flips on a CHANGE, and a
+            // fighter that spawns already facing its final direction (e.g. P2 at -1)
+            // would otherwise never get mirrored — invisible with symmetric boxes,
+            // obvious with directional sprites.
+            visualRoot.localScale = new Vector3(facing, 1f, 1f);
+
+            // Art path: if the character's idle sprite was generated, render a single
+            // animated SpriteRenderer (swapped per state in UpdateArt) and skip the
+            // boxes. `body` points at it so the existing flash/tint code still works.
+            // Probe via Frames() (not Has) — idle is usually a spritesheet, so the
+            // files are "<id>_idle_0.png…", and there is no bare "<id>_idle.png".
+            useArt = Frames(def.id + "_idle").Length > 0;
+            if (useArt)
+            {
+                var artGo = new GameObject("art");
+                artGo.transform.SetParent(visualRoot, false);
+                body = artGo.AddComponent<SpriteRenderer>();
+                body.sortingOrder = 5;
+                body.color = Color.white;
+                SetArtSprite(FirstFrame(def.id + "_idle"));
+                return;
+            }
+
             outline = PrimitiveArt.Box(
                 visualRoot,
                 def.accentColor,
@@ -152,6 +186,87 @@ namespace Fighter
             FaceOpponent();
             Decide(inp);
             Physics(dt);
+            UpdateArt(dt);
+        }
+
+        // ---- generated-sprite animation (only when useArt) ----
+        void UpdateArt(float dt)
+        {
+            if (!useArt) return;
+            string key = def.id + "_" + StateTag();
+            var fr = Frames(key);
+            if (fr.Length == 0) { key = def.id + "_idle"; fr = Frames(key); }
+            if (fr.Length == 0) return;
+            if (key != _animKey) { _animKey = key; _animIdx = 0; _animClock = 0f; }
+            _animClock += dt;
+            if (_animClock >= 1f / ArtFps)
+            {
+                _animClock = 0f;
+                if (LoopingState()) _animIdx = (_animIdx + 1) % fr.Length;
+                else if (_animIdx < fr.Length - 1) _animIdx++;
+            }
+            SetArtSprite(fr[Mathf.Clamp(_animIdx, 0, fr.Length - 1)]);
+        }
+
+        // Sprite-state suffix for the current FState. Attack uses the move's spriteKey
+        // (e.g. "lp"/"hp"/"special_blade"); a missing sheet falls back to idle upstream.
+        string StateTag()
+        {
+            switch (state)
+            {
+                case FState.Dead:
+                case FState.KnockDown: return "ko";
+                case FState.Hitstun: return "hurt";
+                case FState.Block:
+                case FState.Blockstun: return "block";
+                case FState.Jump: return "jump";
+                case FState.Walk: return "walk";
+                case FState.Attack:
+                    return (move != null && !string.IsNullOrEmpty(move.spriteKey))
+                        ? move.spriteKey : "special";
+                default: return installed ? "ascendant" : "idle";
+            }
+        }
+
+        bool LoopingState() =>
+            state == FState.Idle || state == FState.Walk || state == FState.Jump;
+
+        // Loads "<key>_0.._n" (spritesheet) or "<key>" (single), cached per key.
+        Sprite[] Frames(string key)
+        {
+            if (_frameCache.TryGetValue(key, out var cached)) return cached;
+            var list = new List<Sprite>();
+            for (int i = 0; i < 16; i++)
+            {
+                var s = SpriteLoader.Get(key + "_" + i);
+                if (s == null) break;
+                list.Add(s);
+            }
+            if (list.Count == 0)
+            {
+                var one = SpriteLoader.Get(key);
+                if (one != null) list.Add(one);
+            }
+            var arr = list.ToArray();
+            _frameCache[key] = arr;
+            return arr;
+        }
+
+        Sprite FirstFrame(string key)
+        {
+            var fr = Frames(key);
+            return fr.Length > 0 ? fr[0] : null;
+        }
+
+        void SetArtSprite(Sprite s)
+        {
+            if (s == null || body == null) return;
+            body.sprite = s;
+            float target = def.artHeight > 0f ? def.artHeight : def.height * 1.4f;
+            float h = s.bounds.size.y;
+            float k = h > 0f ? target / h : 1f;
+            body.transform.localScale = new Vector3(k, k, 1f);
+            body.transform.localPosition = new Vector3(0f, target * 0.5f, 0f);
         }
 
         void FaceOpponent()
@@ -361,13 +476,22 @@ namespace Fighter
 
         void RefreshColor()
         {
+            if (!body) return;
+            // Art mode: rest white so the sprite shows its own colors; only tint
+            // lightly while installed (Ascendant glow). Box mode: full color swap.
+            if (useArt)
+            {
+                body.color = installed
+                    ? Color.Lerp(Color.white, def.installColor, 0.45f)
+                    : Color.white;
+                return;
+            }
             Color c = def.bodyColor;
             if (def.installType == InstallType.StanceSwap && stanceB)
                 c = def.stanceBColor;
             if (installed)
                 c = def.installColor;
-            if (body)
-                body.color = c;
+            body.color = c;
         }
 
         // ---- physics ----

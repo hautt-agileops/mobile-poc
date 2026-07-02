@@ -104,12 +104,27 @@ env / 1Password), so the same Vertex service account works here.
    or failed asset run still produces a playable build. Continue the unity-poc
    workflow at its playtest/build step.
 
+## Folder layout (flat vs nested)
+
+- **Flat (default):** every PNG lands directly in `Assets/Resources/Art/<id>.png`.
+- **Nested:** pass `-g` (or set `"layout":"nested"` in the manifest) to group PNGs by
+  category/id into an artist-friendly tree — `Characters/<Char>/<action>/`,
+  `Environments/`, `UI/`, `FX/`, `Concept/` (a per-asset `dir` overrides the auto path).
+  Mirrors how real sprite packs ship. **The id namespace is unchanged** — only the on-disk
+  location differs, so game code still asks `SpriteLoader.Get("<id>")`.
+- **Loader must read recursively for nested.** `Resources.Load("Art/<id>")` does NOT search
+  subfolders — a nested PNG would miss and fall back to flat color. The unity-poc
+  `SpriteLoader.cs` uses `Resources.LoadAll<Texture2D>("Art")` indexed by texture name, which
+  walks the whole tree, so both layouts resolve by flat id. A custom loader must do the same.
+- `alpha_key.py -d <dir>` recurses (os.walk), so the REQUIRED alpha pass covers nested trees.
+
 ## How assets reach the game
 
-- **Location:** `Assets/Resources/Art/<id>.png`. `Resources.Load<Texture2D>("Art/<id>")`
-  works synchronously in WebGL (no `UnityWebRequest`/StreamingAssets async dance).
-- **Id == key:** the manifest `id` is the filename stem AND the lookup key. Game
-  code asks `SpriteLoader.Get("fighter_red_idle")`.
+- **Location:** `Assets/Resources/Art/<id>.png` (flat) or a subfolder under `Art/` (nested,
+  see above). `Resources.LoadAll<Texture2D>("Art")` resolves either synchronously in WebGL
+  (no `UnityWebRequest`/StreamingAssets async dance).
+- **Id == key:** the manifest `id` is the filename stem AND the lookup key, regardless of
+  folder. Game code asks `SpriteLoader.Get("fighter_red_idle")`.
 - **Fallback is the safety net:** missing PNG → flat-color box. The headless build
   never breaks on a missing asset; it just degrades to programmer art for that one.
 - **Spritesheets:** `frames > 1` writes `<id>_0.png … <id>_N.png`, generated in one
@@ -117,9 +132,14 @@ env / 1Password), so the same Vertex service account works here.
 
 ## Provider / model defaults
 
-- Image: `gemini-3-pro-image-preview`, remapped to **`gemini-3.1-flash-image`**
-  ("Nano Banana 2") on Vertex — same override the 3d-prompt pipeline uses. gemini-3.x
-  ids route to the Vertex `global` endpoint. Override with `GEMINI_IMAGE_MODEL`.
+- Image: default **`gemini-3.1-flash-lite-image`** ("Nano Banana 2 Lite", ~$0.034/img) —
+  cheapest, plenty for game sprites. gemini-3.x ids route to the Vertex `global` endpoint.
+  Override the primary with `GEMINI_IMAGE_MODEL`.
+- **429/503 fallback chain.** When a model is throttled and exhausts its retries, gen
+  rotates to the next model instead of failing the asset: `flash-lite` → `gemini-2.5-flash-image`
+  ($0.039) → `gemini-3.1-flash-image` (Nano Banana 2, $0.067). Set `GEMINI_IMAGE_FALLBACKS`
+  (comma-separated) to customize the fallback tail. Only throttling rotates — a genuine error
+  fails fast without burning the chain.
 - Vertex AI only — no Gemini Developer API-key path.
 - One image per asset (or N for a spritesheet). No text-refine pass — the manifest
   prompts are already concrete.
@@ -169,4 +189,5 @@ node gen-assets.mjs assets.manifest.json -c 8        # 8 parallel (default 4)
 node gen-assets.mjs assets.manifest.json -c 1        # force fully serial
 node gen-assets.mjs assets.manifest.json -F          # force full re-gen
 node gen-assets.mjs assets.manifest.json -o ./Art    # override output dir
+node gen-assets.mjs assets.manifest.json -g          # nested folders (Characters/<Char>/<action>, …)
 ```
