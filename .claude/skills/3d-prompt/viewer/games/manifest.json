@@ -1,5 +1,14 @@
 [
   {
+    "id": "hau-retro-space-shmup",
+    "title": "Retro Space Shooter",
+    "url": "https://hau-retro-space-shmup.vercel.app",
+    "thumb": "hau-retro-space-shmup.png",
+    "engine": "Unity WebGL",
+    "created": "2026-07-02",
+    "description": "Vertical up-scroll retro shmup vertical slice: hold-to-fire bolts, parallax starfield, a weaving/descending enemy fleet, score + lives HUD, 3 lives with i-frames, GAME OVER and restart."
+  },
+  {
     "id": "bbp-vertical-slice",
     "title": "BLOOD // BLOOM // PROTOCOL",
     "url": "https://bbp-vertical-slice-chi.vercel.app",
