@@ -10,11 +10,51 @@ build → public Vercel link. Everything spawns from C# at runtime (programmer a
 boot scene) so builds are fully headless/batchmode — no Editor GUI, no hand-authored scenes
 or prefabs.
 
-**This skill is a thin orchestrator.** The 13-step pipeline is split into five phase
-sub-skills — load each in turn. Shared assets (`template/`, `template3d/`, `scripts/`,
-`references/`) live in **this** skill dir; the sub-skills reference them by path
-(`../unity-poc/...`). Full landmine list, once: `references/gotchas.md`. Map + flow chart:
-`README.md`.
+**This skill is a thin orchestrator.** The 13-step pipeline is split into five phases. Two
+run **in the main loop as skills** because they need you and the user (interactive scope
+`AskUserQuestion`, iterative code authoring); three run **as isolated agents** you spawn via
+the Task tool because they are non-interactive execution whose noisy logs (Unity batchmode,
+asset gen, WebGL build, puppeteer, vercel) must stay off the main thread:
+
+| phase | kind | run how |
+|-------|------|---------|
+| spec (1–3) | **skill** | load `unity-poc-spec` (interactive scope) |
+| scaffold (4–5) | **agent** | spawn `unity-scaffold` |
+| assets (6) | **agent** | spawn `unity-assets` |
+| gameplay (7) | **skill** | load `unity-poc-gameplay` (author code in main loop) |
+| build+ship (8–13) | **agent** | spawn `unity-buildship` |
+
+Shared assets (`template/`, `template3d/`, `scripts/`, `references/`) live in **this** skill
+dir. The sub-skills reference them by `../unity-poc/...`; the agents live in `.claude/agents/`
+so they reference `.claude/skills/unity-poc/...`. Full landmine list, once:
+`references/gotchas.md`. Map + flow chart: `README.md`.
+
+## Full Pipeline Overview (Zero to Ship)
+
+One game brief → one public playable URL. 13 steps in 5 phases; this skill drives them,
+alternating main-loop skills (interactive) and spawned agents (isolated execution). Two hard
+gates guard the deploy — a failure returns to the gameplay skill, then re-spawns the agent.
+
+```
+game brief ─▶ SPEC ─────▶ SCAFFOLD ──▶ ASSETS ────▶ GAMEPLAY ──▶ BUILD+SHIP ──────────▶ live URL
+ (paste/file)  skill        agent        agent        skill        agent
+               PRD/TDD/      env check    gen PNGs/    author       playtest gate ▸ WebGL
+               manifest      + create     GLBs         Game/ +      build ▸ browser test ▸
+               (AskUser)     project      (fallback)   BuildRoster  deploy-vercel.sh ▸ HANDOFF
+```
+
+| phase | kind | steps | does | gate / output |
+|-------|------|-------|------|---------------|
+| spec | skill `unity-poc-spec` | 1–3 | analyze brief, `AskUserQuestion` scope, pick 2D/3D | `PRD.md` `TDD.md` `assets/models.manifest.json` |
+| scaffold | agent `unity-scaffold` | 4–5 | env check (Unity+WebGL, Vercel, Node, creds), headless create + copy template | project path — **stop if Unity/WebGL missing** |
+| assets | agent `unity-assets` | 6 | manifest → 2D PNGs (+`alpha_key.py`) / 3D GLBs | **never a gate** — missing art → flat/primitive |
+| gameplay | skill `unity-poc-gameplay` | 7 | author `Assets/Scripts/Game/`, expose `BuildRoster()`, wire art | job-specific code (reuse `Framework/`) |
+| build+ship | agent `unity-buildship` | 8–13 | playtest gate ▸ WebGL build ▸ browser boot test ▸ `deploy-vercel.sh` ▸ verify ▸ handoff | **2 hard gates**; verified public `200` URL + `HANDOFF.md` |
+
+**Dimension** (2D fighter / 3D brawler / other) is chosen in spec and threaded to every phase.
+**Credentials** auto-resolve; missing Vertex/Meshy just degrades assets to programmer art —
+never blocks the build. **Deploy** goes to the shared Studio portal `games/` category. Detailed
+per-phase steps, commands, and gotchas live in each phase's skill/agent file.
 
 ## When to use
 
@@ -45,30 +85,36 @@ scripts but you write the gameplay layer from scratch and rewrite the `Playtest`
 the `BuildRoster()` contract assumes a fighter roster. Don't promise "reuse the framework" for
 a non-fighter. See `references/fighter-framework.md` (2D) and `references/3d-framework.md` (3D).
 
-## Pipeline — load each phase sub-skill in turn
+## Pipeline — run the phases in order
 
-Run the phases in order; each sub-skill holds the detailed steps, commands, and the gotchas
-that bite in that phase.
+Load skills into the main loop; spawn agents via the Task tool (pass the project path + the
+2D/3D dimension). Each holds the detailed steps, commands, and phase gotchas.
 
-1. **`unity-poc-spec`** (steps 1–3) — analyze the brief + `AskUserQuestion` scope, write
+1. **skill `unity-poc-spec`** (steps 1–3) — analyze the brief + `AskUserQuestion` scope, write
    `PRD.md` → `TDD.md` (design docs), then `ASSETS.md` → `assets.manifest.json` /
    `models.manifest.json` (the asset contract). Design-first so the build hits no surprises.
-2. **`unity-poc-scaffold`** (steps 4–5) — check the env (Unity 6000.x + WebGL, Vercel, Node,
+2. **agent `unity-scaffold`** (steps 4–5) — check the env (Unity 6000.x + WebGL, Vercel, Node,
    Vertex/Meshy creds), then headlessly create the project and copy `template/` or
-   `template3d/` + `com.unity.ugui` (+ glTFast for real 3D models). **Stop if Unity/WebGL is
-   missing.**
-3. **`unity-poc-assets`** (step 6) — generate real art from the manifest via `game-asset-gen`
+   `template3d/` + `com.unity.ugui` (+ glTFast for real 3D models). It returns the project path
+   or an env-missing report — **stop the pipeline if Unity/WebGL is missing.**
+3. **agent `unity-assets`** (step 6) — generate real art from the manifest via `game-asset-gen`
    (2D PNGs → `Resources/Art/`, REQUIRED `alpha_key.py`) and `gen-models.mjs` → `3d-prompt`
    (3D GLBs → `Resources/Models/`). **Never a hard gate** — missing art degrades to flat
-   color / primitive.
-4. **`unity-poc-gameplay`** (step 7) — author the only job-specific code: `Assets/Scripts/Game/`,
-   register the roster, expose `public static List<CharacterDef> BuildRoster()`, wire art via
-   `SpriteLoader`. Reuse `Framework/` + `Editor/` verbatim.
-5. **`unity-poc-buildship`** (steps 8–13) — REQUIRED headless playtest gate → WebGL build →
-   REQUIRED local puppeteer boot test → Vercel deploy + portal registration → verify public →
-   `HANDOFF.md`. Two hard gates guard the deploy.
+   color / primitive. (2D and 3D asset gen are independent — if a brief needs both, spawn the
+   agent once per manifest and let them run concurrently.)
+4. **skill `unity-poc-gameplay`** (step 7) — author the only job-specific code:
+   `Assets/Scripts/Game/`, register the roster, expose
+   `public static List<CharacterDef> BuildRoster()`, wire art via `SpriteLoader`. Reuse
+   `Framework/` + `Editor/` verbatim. Kept in the main loop — authoring wants your tool feedback.
+5. **agent `unity-buildship`** (steps 8–13) — REQUIRED headless playtest gate → WebGL build →
+   REQUIRED local puppeteer boot test → Vercel deploy (`deploy-vercel.sh`) + portal
+   registration → verify public → `HANDOFF.md`. Two hard gates guard the deploy. It runs
+   `deploy-vercel.sh` directly (a subagent can't spawn the `portal-deploy` agent), returning
+   the verified public URL.
 
 Both dimensions converge after asset gen onto the same gates. Asset gen is **never** a gate.
+On a gate failure the agent returns the failure — drop back to the `unity-poc-gameplay` skill
+in the main loop to fix, then re-spawn `unity-buildship`.
 
 ## Shared assets (in this skill dir)
 

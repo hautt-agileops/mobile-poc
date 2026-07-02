@@ -51,3 +51,7 @@ unity/output/
 
 # ── 3d generated model outputs ──
 3d/
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -233,11 +233,39 @@ After generating content, produce the document files using the available Python 
 3. **`.pptx` pitch deck** via `scripts/generate_pitch_deck_pptx.py` — 10-12 slide presentation for meetings and pitches (requires writing pitch slide content)
 4. **One-page `.pdf`** via `scripts/generate_one_pager_pdf.py` — Single-page concept sheet for cold outreach
 
-**Running Scripts:**
+**The config file (`game_config.json`):** All four scripts consume ONE JSON config you write
+from the interview content. Shape (only `meta.title` is required — every other key is optional
+and degrades cleanly):
+
+```json
+{
+  "meta": { "title": "…", "subtitle": "…", "tagline": "…", "genre": "…",
+            "platform": "…", "audience": "…", "version": "v0.1",
+            "author": "…", "studio": "…", "date": "YYYY-MM-DD" },
+  "sections": [
+    { "heading": "1. Executive Summary", "body": "para\n\npara",
+      "bullets": ["…"],
+      "tables": [ { "caption": "…", "headers": ["A","B"], "rows": [["1","2"]] } ],
+      "subsections": [ { "heading": "1.1 …", "body": "…" } ] }
+  ],
+  "pitch":     { "slides": [ { "title": "…", "bullets": ["…"], "notes": "…" } ] },
+  "one_pager": { "title": "…", "genre": "…", "platform": "…", "tagline": "…",
+                 "pillars": ["…"], "usp": "…", "target": "…",
+                 "monetization": "…", "contact": "…" } }
+```
+
+- The 19 GDD sections map to `sections[]` (docx/pdf render these + the cover + TOC).
+- `pitch.slides[]` drives the .pptx; if omitted it falls back to one slide per section.
+- `one_pager` drives the one-page PDF (or pass `--title/--genre/--platform/--tagline` flags).
+- Full worked example: `scripts/game_config.example.json`.
+
+**Running Scripts** (run from the skill dir so `_config.py` imports resolve):
 ```
 python scripts/generate_gdd_docx.py --config game_config.json --output "GameTitle_GDD_v01.docx"
 python scripts/generate_gdd_pdf.py --config game_config.json --output "GameTitle_GDD_v01.pdf"
 python scripts/generate_pitch_deck_pptx.py --config game_config.json --output "GameTitle_Pitch_v01.pptx"
+python scripts/generate_one_pager_pdf.py --config game_config.json --output "GameTitle_OnePager.pdf"
+# one-pager also accepts flags instead of --config:
 python scripts/generate_one_pager_pdf.py --title "GAME TITLE" --genre "Genre" --platform "Platform" --output "GameTitle_OnePager.pdf"
 ```
 

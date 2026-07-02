@@ -15,6 +15,30 @@ the **output format** the deliverable needs (e.g. STL for moulding) and the hard
 **constraints** a reviewer must verify (dimensions, capacity, neck, process).
 This skill extracts that, writes a refined *visual* prompt, and runs the generator.
 
+## Full Pipeline Overview (Zero to Ship)
+
+One brief → one public model link. Six steps, all in this skill except the deploy
+(delegated to the `portal-deploy` agent so its logs stay off the main thread).
+
+```
+job brief ─▶ 1. ingest ─▶ 2. analyze ─▶ 3. confirm ─▶ 4. generate ─▶ 5. publish ─▶ 6. report
+ (paste/file)   save -J     prompt +      go-ahead     pipeline.mjs   portal-deploy   path +
+                            formats/notes  (credits)   (Gemini+Meshy)  agent           link
+```
+
+| # | step | does | output / gate |
+|---|------|------|---------------|
+| 1 | ingest | accept brief (file / paste / stdin), save verbatim | `/tmp/job-<slug>.txt` for `-J` |
+| 2 | analyze | derive `prompt` (visual), `formats` (glb+…), `notes` (specs), optional `-i` ref image | the pipeline inputs |
+| 3 | confirm | print derived fields; run immediately if explicitly invoked, else ask (spends credits) | go-ahead gate |
+| 4 | generate | `node pipeline.mjs -n -P …` → refine-skipped prompt → 4 view PNGs (Gemini) → GLB/STL (Meshy) | `output/<task-id>/` (PNGs, `model.*`, `prompt.txt`, `job.txt`) |
+| 5 | publish | spawn `portal-deploy` agent → bundles into portal `gallery/`, rebuilds `models/manifest.json`, deploys | `https://3d-viewer-navy.vercel.app/?id=<task-id>` |
+| 6 | report | relay output path + asset list + the public link | deliverable |
+
+**Credentials** auto-resolve (`sa.json` / `GOOGLE_*` / 1Password) — never a gate unless BOTH the
+SA and 1Password are unavailable. **Deploy is optional** — `-P` keeps assets local; skip step 5
+for a manufacture-only STL deliverable. Detail per step below.
+
 ## Prerequisite
 
 `pipeline.mjs` auto-resolves credentials — do NOT make the user export env vars,

@@ -8,46 +8,50 @@ prefabs) so the whole pipeline runs headless. Ships **two** full fighter framewo
 fighter (`template/`) and a 3D arena brawler (`template3d/`).
 
 > **`SKILL.md` is the contract** — a thin orchestrator. The 13-step pipeline is split into
-> five phase sub-skills (sibling dirs under `.claude/skills/`); load each in turn:
-> `unity-poc-spec` (1–3, PRD/TDD/manifest) → `unity-poc-scaffold` (4–5, env + create) →
-> `unity-poc-assets` (6, gen art) → `unity-poc-gameplay` (7, author `Game/`) →
-> `unity-poc-buildship` (8–13, playtest/build/deploy/handoff). Shared assets (`template*/`,
-> `scripts/`, `references/`) stay in **this** dir; sub-skills reference them by `../unity-poc/…`.
-> Full gotchas: `references/gotchas.md`. When docs disagree, the phase SKILL.md wins; fix this file.
+> five phases: two run **in the main loop as skills**, three as **isolated agents** the
+> orchestrator spawns (Task tool). In order:
+> skill `unity-poc-spec` (1–3, PRD/TDD/manifest) → agent `unity-scaffold` (4–5, env + create) →
+> agent `unity-assets` (6, gen art) → skill `unity-poc-gameplay` (7, author `Game/`) →
+> agent `unity-buildship` (8–13, playtest/build/deploy/handoff). Split rule: interactive /
+> code-authoring stay skills; non-interactive execution with noisy logs become agents. Shared
+> assets (`template*/`, `scripts/`, `references/`) stay in **this** dir; skills reference them
+> by `../unity-poc/…`, agents (in `.claude/agents/`) by `.claude/skills/unity-poc/…`.
+> Full gotchas: `references/gotchas.md`. When docs disagree, the phase file wins; fix this one.
 
 ## Flow chart
 
-Root `unity-poc` is a thin orchestrator; each dashed box is one **phase sub-skill** (sibling
-dir under `.claude/skills/`) loaded in turn. Steps numbered as in the pipeline.
+Root `unity-poc` is a thin orchestrator; each dashed box is one phase — a **skill** loaded in
+the main loop (spec, gameplay) or an **agent** spawned via the Task tool (scaffold, assets,
+buildship). Steps numbered as in the pipeline.
 
 ```mermaid
 flowchart TD
     A[Game brief / job] --> B
 
-    subgraph S1[unity-poc-spec · steps 1-3]
+    subgraph S1[skill unity-poc-spec · steps 1-3]
       B[1. Analyze + AskUserQuestion scope<br/>2D fighter · 3D brawler · other] --> C[2. PRD.md → TDD.md<br/>self-contained concept + risk register]
       C --> D{dimension?}
       D -->|2D| D2[3. ASSETS.md → assets.manifest.json<br/>id == PNG name == SpriteLoader key]
       D -->|3D| D3[3. models.manifest.json<br/>id == modelId == .bytes stem]
     end
 
-    subgraph S2[unity-poc-scaffold · steps 4-5]
+    subgraph S2[agent unity-scaffold · steps 4-5]
       E[4. Check env<br/>Unity+WebGL · Vercel · Node · Vertex SA · Meshy] -->|2D| F2[5a. Scaffold template/ + ugui]
       E -->|3D| F3[5b. Scaffold template3d/ + ugui<br/>+ gltfast + csc.rsp HAS_GLTFAST]
     end
 
-    subgraph S3[unity-poc-assets · step 6]
+    subgraph S3[agent unity-assets · step 6]
       G2[6a. game-asset-gen → PNGs<br/>+ alpha_key.py REQUIRED]
       G3[6b. gen-models.mjs → 3d-prompt/Meshy GLB<br/>→ Resources/Models/&lt;id&gt;.bytes]
       G2 -->|no Vertex cred / fail| Gf2[SpriteLoader → flat-color box]
       G3 -->|no cred / fail| Gf3[ModelLoader → primitive capsule]
     end
 
-    subgraph S4[unity-poc-gameplay · step 7]
+    subgraph S4[skill unity-poc-gameplay · step 7]
       H[7. Author Game/ layer + BuildRoster<br/>2D: CharacterDef · 3D: CharacterDef3D]
     end
 
-    subgraph S5[unity-poc-buildship · steps 8-13]
+    subgraph S5[agent unity-buildship · steps 8-13]
       I{8. Playtest gate<br/>Fighter.* / Fighter3D.*}
       I -->|pass exit 0| J[9. Build WebGL headless<br/>BUILD_METHOD env picks 2D/3D]
       J --> K{10. Local test<br/>200s + puppeteer real boot}
@@ -72,10 +76,11 @@ flowchart TD
     style Gf3 fill:#e7f0ff,stroke:#5588cc
 ```
 
-Five phase sub-skills, loaded in order; shared assets (`template*/`, `scripts/`,
+Five phases (2 skills + 3 agents), run in order; shared assets (`template*/`, `scripts/`,
 `references/`) stay in the root dir. Both dimensions converge after asset gen onto the same
 gates. Two hard gates guard the deploy: **playtest** (aborts the build) and **local browser
-test** (aborts the deploy) — both fail back to the gameplay phase (`unity-poc-gameplay`).
+test** (aborts the deploy) — the `unity-buildship` agent returns the failure and the
+orchestrator drops back to the `unity-poc-gameplay` skill to fix, then re-spawns the agent.
 Asset gen is **never** a gate — missing/failed art degrades to a flat-color box (2D) or a
 primitive capsule (3D), blue paths; build still ships.
 
@@ -97,11 +102,11 @@ compiles → 6/6 playtest matchups → WebGL build → clean browser boot. See
 `references/fighter-framework.md` (2D) and `references/3d-framework.md` (3D). Don't promise
 "reuse the framework" for a non-fighter game.
 
-## Pipeline (five phase sub-skills the root orchestrates)
+## Pipeline (five phases the root orchestrates — 2 skills + 3 agents)
 
-> **`unity-poc-spec`** (1–3) · **`unity-poc-scaffold`** (4–5) · **`unity-poc-assets`** (6) ·
-> **`unity-poc-gameplay`** (7) · **`unity-poc-buildship`** (8–13). Each step's detail +
-> commands live in the matching phase `SKILL.md`.
+> skill **`unity-poc-spec`** (1–3) · agent **`unity-scaffold`** (4–5) · agent
+> **`unity-assets`** (6) · skill **`unity-poc-gameplay`** (7) · agent **`unity-buildship`**
+> (8–13). Skill detail lives in each phase `SKILL.md`; agent detail in `.claude/agents/<name>.md`.
 
 1. **Analyze the brief** — genre, core loop, systems, roster, stages, controls, win
    condition. Confirm scope with `AskUserQuestion`. Generic briefs ("cozy mobile game")

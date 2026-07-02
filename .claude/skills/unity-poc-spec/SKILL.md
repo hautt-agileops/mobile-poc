@@ -87,4 +87,4 @@ the palette and mood.
 
 ## Next phase
 
-Env check + scaffold → **`unity-poc-scaffold`**.
+Env check + scaffold → the orchestrator spawns the **`unity-scaffold` agent**.

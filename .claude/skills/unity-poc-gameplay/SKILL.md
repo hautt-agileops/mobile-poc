@@ -5,7 +5,7 @@ description: Phase 4 of the unity-poc pipeline — author the job-specific game 
 
 # unity-poc-gameplay — author the Game/ layer
 
-Phase 4 of **unity-poc** (step 7). Runs after asset gen (`unity-poc-assets`), before the
+Phase 4 of **unity-poc** (step 7). Runs after asset gen (the `unity-assets` agent), before the
 build gate. This is the **only** job-specific code — the `Framework/` and `Editor/` layers
 are reused verbatim. Framework detail: `../unity-poc/references/fighter-framework.md` (2D),
 `../unity-poc/references/3d-framework.md` (3D). Full landmine list:
@@ -96,4 +96,4 @@ with the 2D fighter (same shapes: `GameBootstrap3D`, `Fighter3D`, `CombatSystem3
 
 ## Next phase
 
-Playtest → build → deploy → handoff → **`unity-poc-buildship`**.
+Playtest → build → deploy → handoff → the orchestrator spawns the **`unity-buildship` agent**.

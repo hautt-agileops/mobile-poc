@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "title": "Emberfall",
+    "subtitle": "A roguelite about hoarding fire",
+    "tagline": "Every run you burn brighter — and shorter.",
+    "genre": "Action Roguelite",
+    "platform": "PC / Switch",
+    "audience": "Core action players, 18-34",
+    "version": "v0.1",
+    "author": "Jane Dev",
+    "studio": "Small Fires Studio",
+    "date": "2026-07-02"
+  },
+  "sections": [
+    {
+      "heading": "1. Executive Summary",
+      "body": "Emberfall is a top-down action roguelite where the player's health and their only weapon are the same resource: fire.\n\nSpending flame to attack shortens the run; banking it makes you fragile. The tension of the core loop is that spend-vs-save decision, made hundreds of times per run.",
+      "bullets": [
+        "Pitch: Hades meets a candle burning down.",
+        "USP: health and ammo are one shared meter.",
+        "Target first-playable: 12 weeks."
+      ],
+      "tables": [
+        {
+          "caption": "Core loop (30s)",
+          "headers": ["Beat", "Player does", "Game responds"],
+          "rows": [
+            ["Action", "Spend flame to attack", "Enemies burn, meter drops"],
+            ["Feedback", "Meter + screen dim", "Urgency rises"],
+            ["Reward", "Clear room, grab ember", "Meter refills partially"]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "1.1 Vision Statement",
+          "body": "Make the player feel the weight of every attack by taxing the thing that keeps them alive."
+        }
+      ]
+    },
+    {
+      "heading": "2. Core Mechanics",
+      "body": "The Flame Meter drives combat, movement, and death.",
+      "bullets": [
+        "Attack: costs 4 flame, deals 10 damage.",
+        "Dash: costs 2 flame, i-frames 0.3s.",
+        "Death: meter hits 0."
+      ]
+    }
+  ],
+  "pitch": {
+    "slides": [
+      {
+        "title": "The Hook",
+        "bullets": [
+          "Your health IS your ammo.",
+          "Spend to win the fight, save to survive the run."
+        ],
+        "notes": "Open on the shared-meter reveal; it lands in 5 seconds."
+      },
+      {
+        "title": "Why Now",
+        "bullets": ["Roguelite audience is huge and loyal.",
+                    "One-resource design reads instantly in trailers."]
+      }
+    ]
+  },
+  "one_pager": {
+    "title": "EMBERFALL",
+    "genre": "Action Roguelite",
+    "platform": "PC / Switch",
+    "tagline": "Every run you burn brighter — and shorter.",
+    "pillars": ["One resource for life and damage",
+                "Runs that visibly darken as you play",
+                "Build variety via ember relics"],
+    "usp": "Health and ammunition are a single shared meter, making every attack a survival decision.",
+    "target": "Core action-roguelite players, 18-34, on PC and Switch.",
+    "monetization": "Premium, $19.99. Optional cosmetic ember skins post-launch.",
+    "contact": "jane@smallfires.studio"
+  }
+}

@@ -2,18 +2,46 @@
 
 Proof-of-concept workspace for AI-driven game and 3D asset pipelines. Each POC is independent — no shared build system or deps.
 
+## Pipelines (job description → live URL)
+
+Two end-to-end paths take a freelance brief and ship a public artifact. Both are code-driven
+and run headless; both land on Vercel and register in the shared **Studio portal**
+(public: [`3d-viewer-navy.vercel.app`](https://3d-viewer-navy.vercel.app)).
+
+| brief | drive with | flow | ships |
+|-------|-----------|------|-------|
+| playable game / prototype (2D fighter, 3D brawler, arcade) | `unity-poc` | spec → scaffold → assets → gameplay → build+ship | public WebGL URL (portal `games/`) |
+| 3D model / STL / printable / product | `3d-prompt` | brief → 4 view PNGs → GLB/STL (Meshy) → publish | public model viewer (portal `gallery/`) |
+
+`unity-poc` orchestrates its phases across skills (interactive) and agents (execution); the
+final `unity-buildship` agent runs `deploy-vercel.sh` to publish + verify a live `200` URL.
+`3d-prompt` auto-publishes via `portal-deploy`. Design-only briefs → `game-design-document`
+(GDD `.docx`/`.pdf`, no deploy).
+
 ## Skills
 
-All Claude Code skills live in `.claude/skills/` and are invoked via `/skill-name` in Claude Code.
+Skills (`.claude/skills/`) load into the main loop, invoked via `/skill-name` — for
+interactive work, code authoring, orchestration, and reference knowledge.
 
 | skill | what it does |
 |-------|-------------|
 | `3d-prompt` | Job brief → 4-view PNGs → GLB/STL (Meshy) → optional public Vercel gallery |
-| `unity-poc` | Game brief → design docs → code-driven Unity WebGL build → public Vercel URL (phases: `unity-poc-spec` / `-scaffold` / `-assets` / `-gameplay` / `-buildship`) |
+| `unity-poc` | Orchestrator: game brief → design docs → Unity WebGL → public Vercel URL. Interactive phases run as skills (`unity-poc-spec`, `unity-poc-gameplay`); execution phases as agents (below) |
 | `game-asset-gen` | Asset manifest → 2D sprites (Vertex AI) + 3D models (Meshy GLB) |
 | `game-design` | Game design principles — GDD structure, balancing, progression |
-| `game-design-document` | Author PRD / GDD (`.docx` / `.pdf`) from a brief |
-| `unity-developer` | General Unity C# / URP / WebGL dev help |
+| `game-design-document` | Author PRD / GDD (`.docx` / `.pdf`) — mandatory interactive interview |
+
+## Agents
+
+Agents (`.claude/agents/`) run in an isolated context and return a conclusion — for
+non-interactive execution (builds, deploys, asset gen) whose logs stay off the main thread,
+and one-shot expert consults. A subagent can't spawn another subagent.
+
+| agent | what it does |
+|-------|-------------|
+| `portal-deploy` | Publish a 3D model or Unity WebGL build to the shared Studio portal (Vercel), return the public link |
+| `unity-advisor` | Unity C# / rendering / perf / WebGL expert consult — returns guidance + code |
+| `unity-scaffold` · `unity-assets` · `unity-buildship` | `unity-poc` execution phases (env+create · gen art · playtest/build/deploy/handoff), spawned by the orchestrator |
 
 ## Outputs
 
