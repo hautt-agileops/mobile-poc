@@ -1,0 +1,10 @@
+Generated: 2026-06-15T10:46:45.899Z
+Task: 019ecae1-5d11-7b5d-b3c1-ecf325b60da7
+Provider: meshy
+Formats: glb,stl
+Constraints: 3D-print, real geometry not displacement/bump, detailed accurate bird, printable
+
+Prompt:
+A detailed 3D bird perched on top of a round cap, fully sculpted three-dimensional bird with clearly defined feathers, folded wings, beak, eyes, and tail, smooth solid-colored matte finish, the bird rising as real raised geometry from the flat circular cap surface, clean printable forms with no thin fragile parts.
+
+Original job: job.txt

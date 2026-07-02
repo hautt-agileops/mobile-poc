@@ -1,0 +1,18 @@
+<!--
+  IL2CPP managed-stripping preserve list for the 3D brawler. Every component is created at
+  runtime via AddComponent (uGUI, EventSystem, MeshRenderer, our MonoBehaviours) and glTFast
+  instantiates types reflectively, so the stripper can't see them referenced and would remove
+  their backing -> "Could not produce class with ID N" at boot. Preserve the runtime-only
+  assemblies. The glTFast entries are no-ops when the package isn't installed (the linker logs
+  a skip warning and continues) — primitive-only builds are unaffected.
+-->
+<linker>
+  <assembly fullname="Assembly-CSharp" preserve="all" />
+  <assembly fullname="UnityEngine.UI" preserve="all" />
+  <assembly fullname="UnityEngine.UIModule" preserve="all" />
+  <assembly fullname="UnityEngine.IMGUIModule" preserve="all" />
+  <assembly fullname="UnityEngine.TextRenderingModule" preserve="all" />
+  <assembly fullname="UnityEngine.CoreModule" preserve="all" />
+  <assembly fullname="glTFast" preserve="all" />
+  <assembly fullname="Unity.Mathematics" preserve="all" />
+</linker>

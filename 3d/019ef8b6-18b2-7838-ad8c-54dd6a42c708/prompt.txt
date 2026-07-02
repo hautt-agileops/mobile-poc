@@ -1,0 +1,10 @@
+Generated: 2026-06-24T08:24:37.062Z
+Task: 019ef8b6-18b2-7838-ad8c-54dd6a42c708
+Provider: meshy
+Formats: glb,stl
+Constraints: cutaway section, 2x stacked 12oz cans D66xH122, spring follower at base, double-wall, top+bottom screw threads, internal mechanism ref
+
+Prompt:
+A vertical cross-section cutaway of a tall cylindrical two-can drink holder, sliced lengthwise to reveal the hollow interior: two cylindrical soda cans stacked one directly above the other inside the tube, a coiled compression spring and a flat follower disc beneath the lower can, thick double-wall tube shown in cross-section, screw-thread rings at the top opening and bottom base, solid matte gunmetal-grey housing with plain light-grey cans, clean technical engineering look.
+
+Original job: job.txt

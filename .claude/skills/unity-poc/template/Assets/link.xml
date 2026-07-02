@@ -1,0 +1,15 @@
+<!--
+  IL2CPP managed-stripping preserve list. This game creates every component at runtime
+  via AddComponent (uGUI, EventSystem, sprites, our MonoBehaviours), so the stripper
+  can't see them referenced and removes their backing -> "Could not produce class with
+  ID 115" at boot. Preserve the assemblies that are only touched reflectively/at runtime.
+-->
+<linker>
+  <assembly fullname="Assembly-CSharp" preserve="all" />
+  <assembly fullname="UnityEngine.UI" preserve="all" />
+  <assembly fullname="UnityEngine.UIModule" preserve="all" />
+  <assembly fullname="UnityEngine.IMGUIModule" preserve="all" />
+  <assembly fullname="UnityEngine.TextRenderingModule" preserve="all" />
+  <assembly fullname="UnityEngine.SpriteShapeModule" preserve="all" />
+  <assembly fullname="UnityEngine.CoreModule" preserve="all" />
+</linker>

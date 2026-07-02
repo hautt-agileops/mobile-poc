@@ -1,0 +1,10 @@
+Generated: 2026-06-16T08:17:12.158Z
+Task: 019ecf7f-b6ea-701b-8e10-396449d19350
+Provider: meshy
+Formats: glb,stl
+Constraints: H~170mm, 120-150g fill, blow-mould, standard neck
+
+Prompt:
+A leopard-shaped plastic bottle: stylized leopard body forming a tall hollow vessel, glossy golden-tan surface with solid dark-brown rosette spots, smooth rounded contours, standard cylindrical screw-neck opening at top, simple blow-mouldable geometry.
+
+Original job: job.txt

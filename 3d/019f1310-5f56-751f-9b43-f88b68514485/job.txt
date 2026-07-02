@@ -1,0 +1,3 @@
+Game asset for a 3D co-op casino roguelike (Steam, Unity-style PBR target).
+Object: stack of casino poker chips. Stylized, game-ready, clean solid colors.
+Used as in-world currency prop / pickup. GLB for engine import.

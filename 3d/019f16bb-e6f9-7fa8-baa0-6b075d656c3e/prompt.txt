@@ -1,0 +1,10 @@
+Generated: 2026-06-30T04:17:31.071Z
+Task: 019f16bb-e6f9-7fa8-baa0-6b075d656c3e
+Provider: meshy
+Formats: glb,stl
+Constraints: ear-muff outer shell, freeform/surfaced, watertight+manufacturable, STL deliverable
+
+Prompt:
+A children's noise-reducing ear-muff outer ear-cup shell: smooth freeform domed oval shell in solid matte teal plastic, sculpted with gentle organic flowing ridges and a subtly contoured faceted surface, softly rounded edges, single-piece hollow injection-moulded form, clean manufacturable surfacing.
+
+Original job: job.txt

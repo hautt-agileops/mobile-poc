@@ -1,0 +1,8 @@
+Generated: 2026-06-17T09:47:53.620Z
+Task: 019ed4f5-16d6-7a71-b239-ec49b62a206e
+Provider: meshy
+Formats: glb
+Constraints: interlocking gears, rusted cast iron, olive paint, PBR texture
+
+Prompt:
+A massive interlocking mechanical gear mechanism, multiple meshing cog wheels of varying sizes. Weathered rusted cast iron and steel, heavy orange-brown oxidation pooling in the teeth recesses, peeling olive-green paint on the flat faces, severe pitting, deep grease stains and micro-scratches, matte corroded metal finish.

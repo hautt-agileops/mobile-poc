@@ -1,0 +1,17 @@
+{
+  "style": "low-poly stylized 3D game character, clean solid colors, neutral A-pose, game-ready proportions, simple readable silhouette",
+  "models": [
+    {
+      "id": "ridge",
+      "prompt": "armored red brawler, broad heavy shoulders, gauntleted fists, aggressive forward stance"
+    },
+    {
+      "id": "vesper",
+      "prompt": "lithe indigo duelist in a hooded shadow cloak, twin short blades, agile silhouette"
+    },
+    {
+      "id": "orbit",
+      "prompt": "teal techno-ranger with a shoulder-mounted emitter pod, sleek armored bodysuit, zoning fighter"
+    }
+  ]
+}

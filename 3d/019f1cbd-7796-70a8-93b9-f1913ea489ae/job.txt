@@ -1,0 +1,37 @@
+3D Artist Needed — Convert Statue Products into Shopify AR (USDZ + GLB)
+Posted yesterday
+Worldwide
+
+Summary
+We sell lifesize, limited-edition collector statues (luxury sculpture e-commerce brand) and want to add "View in AR" functionality to our Shopify product pages so customers can see the true-to-scale statue in their own room before buying.
+
+We need a 3D artist to:
+
+Build (or optimize an existing source file into) an accurate, photorealistic 3D model of our statues — a lifesize Iron Man Mark VII sculpture. for example
+
+Deliver it in both USDZ (iOS AR Quick Look) and GLB (Android Scene Viewer / Shopify native 3D) formats.
+
+Model must be built or scaled to true real-world dimensions: 82.65" H x 82.5" W x 44.5" D. This is non-negotiable — the entire point of the AR feature is for customers to see accurate scale in their space.
+
+Optimize poly count / texture size for fast mobile loading without losing visual fidelity (this will sit on a product page people view on phones).
+
+Upload and configure the files directly in our Shopify product media (we'll provide store access), confirm AR launches correctly from both iOS Safari (Quick Look) and Android Chrome (Scene Viewer).
+
+Test on at least one real iOS and one real Android device before calling it done — not just simulator/preview.
+
+We may have source reference material (renders, photos, possibly a manufacturer CAD file we're tracking down) to speed up modeling — will share in interview.
+
+This could lead to ongoing work: we have ~150 products across 8 collections and plan to roll AR out across the catalog if this first one goes well.
+
+Requirements
+
+Portfolio showing prior product-to-AR conversions, ideally Shopify specifically
+Experience with USDZ and GLB export pipelines (Blender, Cinema 4D, or similar)
+Understanding of real-world scale accuracy in AR (not just visually plausible — actually correct dimensions)
+Comfortable working in Shopify admin (3D model upload under product media)
+Can test on real iOS + Android hardware, not just emulators
+
+Nice to Have
+
+Experience with photogrammetry (in case we end up needing to scan a physical unit rather than model from renders)
+Prior work in collectibles, toys, or luxury goods e-commerce

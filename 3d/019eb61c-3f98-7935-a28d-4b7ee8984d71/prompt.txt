@@ -1,0 +1,10 @@
+Generated: 2026-06-11T09:59:20.809Z
+Task: 019eb61c-3f98-7935-a28d-4b7ee8984d71
+Provider: meshy
+Formats: glb,stl
+Constraints: real 3D geometry not displacement/bump, print-ready, detailed accurate bird features
+
+Prompt:
+A detailed realistic small songbird with raised three-dimensional feather geometry, perched on the front panel of a baseball cap, the bird modeled as solid sculpted relief with clearly defined beak, eyes, wings and tail feathers, smooth matte surface, neutral solid color, fully three-dimensional printable geometry.
+
+Original job: job.txt

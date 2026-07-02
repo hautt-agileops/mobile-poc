@@ -1,0 +1,8 @@
+Sectioned cutaway variant of the two-soda-can holder (CruiseCup-style).
+Lengthwise cross-section to reveal internal mechanism for the modeler:
+- Two standard 12oz cans (D66 x H122mm) stacked vertically inside the tube.
+- Compression spring + flat follower disc at the base pushing lower can up.
+- Double-wall insulated tube shown in cross-section.
+- Screw-thread rings at top opening (drinking) and bottom base (loading).
+Internal-mechanism reference for the inner functional core; modeler adds
+outer branded shell.

@@ -1,0 +1,10 @@
+Generated: 2026-06-29T11:05:39.442Z
+Task: 019f130b-cc8e-745b-81e9-27f859b2302a
+Provider: meshy
+Formats: glb,stl
+Constraints: gold diamond bracelet, castable, prong-set stones
+
+Prompt:
+A luxury gold bracelet: polished 18k yellow-gold links forming a smooth flexible chain band, set with a row of brilliant-cut white diamonds along the top surface in prong settings, clean reflective metallic finish, elegant rounded curves, solid jewelry-grade geometry.
+
+Original job: job.txt

@@ -1,0 +1,10 @@
+Generated: 2026-06-30T04:29:21.073Z
+Task: 019f16c6-e325-771b-9e0e-ce02c9a3490d
+Provider: meshy
+Formats: glb,stl
+Constraints: ear-muff outer shell, ref ProCase-style headset, freeform/surfaced, watertight+manufacturable, STL deliverable
+
+Prompt:
+A children's noise-reducing over-ear ear muff: two large rounded oval ear cups joined by a sculpted twin-rail headband, matte black moulded plastic with subtle glossy black accent ridges, smooth flowing freeform surfaces with a unique sculpted wave contour on the outer cups, soft padded oval ear cushions, compact child-sized proportions, single-piece injection-mouldable shells.
+
+Original job: job.txt

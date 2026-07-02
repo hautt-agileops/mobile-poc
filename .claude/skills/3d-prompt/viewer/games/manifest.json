@@ -1,0 +1,29 @@
+[
+  {
+    "id": "bbp-vertical-slice",
+    "title": "BLOOD // BLOOM // PROTOCOL",
+    "url": "https://bbp-vertical-slice-chi.vercel.app",
+    "thumb": "bbp-vertical-slice.png",
+    "engine": "Unity WebGL",
+    "created": "2026-06-30",
+    "description": "Story-driven 2D fighter vertical slice: 3 fighters across the Blood/Bloom/Protocol factions, each with a signature mechanic (install, shadow stance-swap, packet zoning). Best-of-3, local 2P + training, neon-noir art."
+  },
+  {
+    "id": "stack-and-bake",
+    "title": "Stack & Bake",
+    "url": "https://stack-and-bake.vercel.app",
+    "thumb": "stack-and-bake.png",
+    "engine": "Unity WebGL",
+    "created": "2026-06-30",
+    "description": "A cozy one-thumb café game: drag fluffy ingredients onto the plate to match the customer's order, then serve. No timers, no fail state."
+  },
+  {
+    "id": "breachpoint",
+    "title": "BREACHPOINT",
+    "url": "https://breachpoint-psi.vercel.app",
+    "thumb": "breachpoint.png",
+    "engine": "Unity WebGL",
+    "created": "2026-06-30",
+    "description": "Fast-paced first-person arena shooter: free-for-all deathmatch vs 3 AI bots, 3 hitscan weapons (semi pistol, auto pulse rifle, pump scattergun) with recoil/spread/falloff and headshots, reactive HUD with killfeed and scoreboard, first to 15 frags. Single-player slice of a multiplayer WebGL FPS, netcode-seamed."
+  }
+]

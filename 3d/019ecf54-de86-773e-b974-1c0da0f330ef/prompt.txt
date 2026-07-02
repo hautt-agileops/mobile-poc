@@ -1,0 +1,8 @@
+Generated: 2026-06-16T07:30:16.278Z
+Task: 019ecf54-de86-773e-b974-1c0da0f330ef
+Provider: meshy
+Formats: glb
+Constraints: generic fox, display model
+
+Prompt:
+A stylized fox: sleek quadruped body, warm orange-red fur with white underbelly, chest, and tail tip, black lower legs and paws, large pointed ears with dark tips, bushy tail, smooth clean solid-color surfaces, friendly alert pose.

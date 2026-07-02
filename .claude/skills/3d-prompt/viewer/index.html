@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studio Gallery</title>
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer@^4/dist/model-viewer.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #0b0d10; color: #e6e8eb;
+    }
+    a { color: #6ea8fe; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; border-bottom: 1px solid #1c2127;
+      position: sticky; top: 0; background: #0b0d10cc; backdrop-filter: blur(8px); z-index: 10;
+    }
+    header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+    header .count { color: #8b939c; font-size: 13px; }
+    /* category tabs */
+    .tabs { display: flex; gap: 6px; margin-left: 8px; }
+    .tab {
+      padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
+      color: #c4c9cf; background: transparent; border: 1px solid #1c2127; cursor: pointer;
+    }
+    .tab:hover { background: #12161b; text-decoration: none; }
+    .tab.active { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    /* Grid (shared by gallery + games) */
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .card {
+      background: #12161b; border: 1px solid #1c2127; border-radius: 12px;
+      overflow: hidden; transition: border-color .15s, transform .15s; position: relative;
+    }
+    .card:hover { border-color: #2d6cdf; transform: translateY(-2px); }
+    .card a { color: inherit; text-decoration: none; display: block; }
+    .card .thumb {
+      width: 100%; aspect-ratio: 1; object-fit: cover; background: #0b0d10;
+      display: block;
+    }
+    .card .meta { padding: 10px 12px; }
+    .card .title { font-size: 14px; font-weight: 500; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .card .sub { color: #8b939c; font-size: 12px; margin-top: 4px; }
+    .badge {
+      position: absolute; top: 8px; left: 8px; padding: 3px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; background: #0b0d10cc; border: 1px solid #2a313a;
+      backdrop-filter: blur(4px);
+    }
+    .badge.play { background: #1f7a4dcc; border-color: #1f7a4d; }
+
+    /* Model viewer */
+    .viewer-layout { display: grid; grid-template-columns: 1fr 320px; gap: 0; height: calc(100vh - 65px); }
+    model-viewer { width: 100%; height: 100%; background: #0b0d10; --poster-color: #0b0d10; }
+    .panel { border-left: 1px solid #1c2127; padding: 20px; overflow-y: auto; }
+    .panel h2 { font-size: 16px; margin: 0 0 4px; }
+    .panel .sub { color: #8b939c; font-size: 12px; margin-bottom: 16px; }
+    .panel .prompt { font-size: 13px; line-height: 1.5; color: #c4c9cf;
+      white-space: pre-wrap; background: #12161b; border: 1px solid #1c2127;
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; }
+    .views { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
+    .views img { width: 100%; aspect-ratio: 1; object-fit: cover;
+      border: 1px solid #1c2127; border-radius: 6px; }
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+      color: #8b939c; margin: 0 0 8px; }
+    .downloads { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .btn {
+      display: inline-block; padding: 7px 12px; border-radius: 8px; font-size: 13px;
+      background: #1c2127; border: 1px solid #2a313a; color: #e6e8eb; cursor: pointer;
+    }
+    .btn:hover { background: #242b33; text-decoration: none; }
+    .btn-primary { background: #2d6cdf; border-color: #2d6cdf; }
+    .btn-primary:hover { background: #2860c9; }
+
+    /* Game player (full-bleed iframe) */
+    .play-layout { height: calc(100vh - 65px); display: flex; flex-direction: column; }
+    .play-bar { display: flex; align-items: center; gap: 14px; padding: 10px 16px;
+      border-bottom: 1px solid #1c2127; }
+    .play-bar h2 { font-size: 15px; margin: 0; }
+    .play-frame { flex: 1; border: 0; width: 100%; background: #000; }
+
+    .empty { text-align: center; color: #8b939c; padding: 80px 20px; }
+    @media (max-width: 720px) {
+      .viewer-layout { grid-template-columns: 1fr; height: auto; }
+      model-viewer { height: 60vh; }
+      .panel { border-left: none; border-top: 1px solid #1c2127; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="./" style="display:flex;align-items:center;gap:10px;color:inherit">
+      <span style="font-size:20px">&#129513;</span>
+      <h1>Studio Gallery</h1>
+    </a>
+    <nav class="tabs" id="tabs"></nav>
+    <span class="count" id="count"></span>
+  </header>
+  <main class="wrap" id="app">
+    <div class="empty">Loading…</div>
+  </main>
+
+  <script>
+    const MODELS = 'models';
+    const GAMES = 'games';
+    const app = document.getElementById('app');
+    const countEl = document.getElementById('count');
+    const tabsEl = document.getElementById('tabs');
+
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const fmtDate = (s) => {
+      if (!s) return '';
+      const d = new Date(s);
+      return isNaN(d) ? s : d.toLocaleDateString(undefined,
+        { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+
+    async function loadJSON(url) {
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) return [];
+        return await res.json();
+      } catch { return []; }
+    }
+
+    function renderTabs(cat, counts) {
+      const mk = (key, label) =>
+        `<a class="tab ${cat === key ? 'active' : ''}" href="?cat=${key}">${label}` +
+        (counts[key] ? ` <span style="opacity:.7">${counts[key]}</span>` : '') + `</a>`;
+      tabsEl.innerHTML = mk('gallery', 'Gallery') + mk('games', 'Games');
+    }
+
+    /* ---- Gallery (3D models) ---- */
+    function renderGallery(models) {
+      document.title = 'Gallery · Studio';
+      countEl.textContent = models.length
+        ? `${models.length} model${models.length === 1 ? '' : 's'}` : '';
+      if (!models.length) {
+        app.innerHTML = `<div class="empty">No models published yet.</div>`;
+        return;
+      }
+      app.innerHTML = `<div class="grid">${models.map(m => `
+        <div class="card">
+          <span class="badge">3D</span>
+          <a href="?id=${encodeURIComponent(m.id)}">
+          <img class="thumb" src="${MODELS}/${m.id}/${m.thumb || 'front.png'}"
+               loading="lazy" alt="${esc(m.title)}"
+               onerror="this.style.visibility='hidden'">
+          <div class="meta">
+            <div class="title">${esc(m.title || m.id)}</div>
+            <div class="sub">${esc(m.provider || '')}${m.provider && m.created ? ' · ' : ''}${fmtDate(m.created)}</div>
+          </div>
+        </a></div>`).join('')}</div>`;
+    }
+
+    function renderModel(m) {
+      document.title = (m.title || m.id) + ' · Studio';
+      const base = `${MODELS}/${m.id}`;
+      const views = ['front.png', 'back.png', 'left-side.png', 'right-side.png'];
+      const formats = (m.formats && m.formats.length) ? m.formats : ['glb'];
+      const dl = formats.map(f =>
+        `<a class="btn" href="${base}/model.${f}" download>${f.toUpperCase()}</a>`).join('');
+      app.innerHTML = `
+        <div style="margin-bottom:14px"><a href="?cat=gallery">&larr; Gallery</a></div>
+        <div class="viewer-layout">
+          <model-viewer src="${base}/model.glb" camera-controls auto-rotate
+            shadow-intensity="1" exposure="1" ar ar-modes="webxr scene-viewer quick-look"
+            interaction-prompt="none" alt="${esc(m.title || m.id)}"></model-viewer>
+          <div class="panel">
+            <h2>${esc(m.title || m.id)}</h2>
+            <div class="sub">${esc(m.provider || '')}${m.provider && m.created ? ' · ' : ''}${fmtDate(m.created)}</div>
+            ${m.prompt ? `<p class="section-label">Prompt</p><div class="prompt">${esc(m.prompt)}</div>` : ''}
+            <p class="section-label">Views</p>
+            <div class="views">${views.map(v =>
+              `<img src="${base}/${v}" loading="lazy" alt="${v}" onerror="this.style.display='none'">`).join('')}</div>
+            <p class="section-label">Download</p>
+            <div class="downloads">${dl}</div>
+            <button class="btn btn-primary" id="copyBtn">Copy link</button>
+          </div>
+        </div>`;
+      document.getElementById('copyBtn').onclick = async (e) => {
+        try {
+          await navigator.clipboard.writeText(location.href);
+          e.target.textContent = 'Copied!';
+          setTimeout(() => (e.target.textContent = 'Copy link'), 1500);
+        } catch { e.target.textContent = location.href; }
+      };
+    }
+
+    /* ---- Games (playable WebGL builds) ---- */
+    function renderGames(games) {
+      document.title = 'Games · Studio';
+      countEl.textContent = games.length
+        ? `${games.length} game${games.length === 1 ? '' : 's'}` : '';
+      if (!games.length) {
+        app.innerHTML = `<div class="empty">No games published yet.</div>`;
+        return;
+      }
+      app.innerHTML = `<div class="grid">${games.map(g => `
+        <div class="card">
+          <span class="badge play">▶ PLAY</span>
+          <a href="?game=${encodeURIComponent(g.id)}">
+          <img class="thumb" src="${GAMES}/${esc(g.thumb || g.id + '.png')}"
+               loading="lazy" alt="${esc(g.title)}"
+               onerror="this.style.visibility='hidden'">
+          <div class="meta">
+            <div class="title">${esc(g.title || g.id)}</div>
+            <div class="sub">${esc(g.engine || 'WebGL')}${g.created ? ' · ' + fmtDate(g.created) : ''}</div>
+          </div>
+        </a></div>`).join('')}</div>`;
+    }
+
+    function renderGame(g) {
+      document.title = (g.title || g.id) + ' · Studio';
+      app.innerHTML = `
+        <div class="play-layout">
+          <div class="play-bar">
+            <a href="?cat=games">&larr; Games</a>
+            <h2>${esc(g.title || g.id)}</h2>
+            <span class="sub" style="color:#8b939c">${esc(g.engine || 'WebGL')}</span>
+            <span style="flex:1"></span>
+            <a class="btn btn-primary" href="${esc(g.url)}" target="_blank" rel="noopener">Open in new tab ↗</a>
+          </div>
+          <iframe class="play-frame" src="${esc(g.url)}" allow="autoplay; fullscreen; gamepad"
+            title="${esc(g.title || g.id)}"></iframe>
+        </div>`;
+    }
+
+    (async () => {
+      try {
+        const [models, games] = await Promise.all([
+          loadJSON(`${MODELS}/manifest.json`),
+          loadJSON(`${GAMES}/manifest.json`),
+        ]);
+        const counts = { gallery: models.length, games: games.length };
+        const q = new URLSearchParams(location.search);
+        const id = q.get('id');
+        const gameId = q.get('game');
+        let cat = q.get('cat') || (gameId ? 'games' : 'gallery');
+
+        renderTabs(id ? 'gallery' : cat, counts);
+
+        if (id) {
+          const m = models.find(x => x.id === id);
+          if (m) renderModel(m);
+          else app.innerHTML =
+            `<div class="empty">Model <code>${esc(id)}</code> not found. <a href="?cat=gallery">Back to gallery</a></div>`;
+        } else if (gameId) {
+          const g = games.find(x => x.id === gameId);
+          if (g) renderGame(g);
+          else app.innerHTML =
+            `<div class="empty">Game <code>${esc(gameId)}</code> not found. <a href="?cat=games">Back to games</a></div>`;
+        } else if (cat === 'games') {
+          renderGames(games);
+        } else {
+          renderGallery(models);
+        }
+      } catch (err) {
+        app.innerHTML = `<div class="empty">Failed to load: ${esc(err.message)}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

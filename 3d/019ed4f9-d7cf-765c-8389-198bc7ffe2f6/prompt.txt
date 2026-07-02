@@ -1,0 +1,10 @@
+Generated: 2026-06-17T09:50:38.124Z
+Task: 019ed4f9-d7cf-765c-8389-198bc7ffe2f6
+Provider: meshy
+Formats: glb
+Constraints: weathered robot joint plate; rust + peeling olive paint, copper wiring, hydraulic lines
+
+Prompt:
+A mechanical robot arm joint plate: rusted steel plating with segmented hydraulic lines and exposed copper wiring bundles, peeling olive-green paint flaking to reveal pitted bare metal underneath, dark oily smudges around the bolts, fine directional friction scratches, photorealistic ultra-high-detail PBR materials.
+
+Original job: job.txt
