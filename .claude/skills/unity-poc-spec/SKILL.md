@@ -53,6 +53,27 @@ In the project root, before scaffolding — design first so the build hits minim
   spec** — the roster (each character's identity, silhouette, palette, signature move), each
   stage (setting, mood, palette), and the visual pillar (art direction in one paragraph).
   This content spec is what step 3 turns into assets.
+- **`PRD.md` narrative section** — every game gets a **story arc**, even a vertical slice.
+  Author the classic 5-element structure and map each beat onto a gameplay moment (a level,
+  an encounter, a screen) so the arc is *played*, not just read:
+  1. **Premise / setup** — world, protagonist, situation ("who am I, why am I here?").
+     Delivered via intro screen / opening level.
+  2. **Inciting incident & goal** — the disruption + the clear player objective driving
+     everything (rescue, survive, escape, uncover).
+  3. **Rising conflict / escalation** — obstacles/enemies/stakes that grow. Sync story
+     tension to difficulty — they rise together.
+  4. **Climax** — peak confrontation the slice builds to: final boss, major decision, or
+     set-piece.
+  5. **Resolution / ending** — payoff, character-arc wrap, optional branching endings.
+
+  Layer in game-only storytelling tools where cheap: **environmental storytelling** (tell
+  story through the level itself), **lore collectibles** (notes / audio logs), **player
+  branching choices**. State which the slice uses and which are post-slice.
+- **`PRD.md` milestones** — a **milestone table** breaking the build into ordered,
+  demoable checkpoints (e.g. M0 boots to menu → M1 one playable character moves → M2 combat
+  loop → M3 full arc playable → M4 art + polish). Each milestone: goal, in-scope, the story
+  beat it makes playable, and its done-criteria. Milestones drive the implementation order
+  the TDD locks in — every milestone must be a runnable build, not a half-state.
 - **`TDD.md`** (technical): a **"constraints inherited from the harness"** table read off
   the gotchas (code-driven, headless build, IL2CPP stripping, EventSystem, input handler,
   compression), project layout, boot sequence, per-system design, data flow,
@@ -69,9 +90,35 @@ frame), each stage/background, platform & tile, UI element (health bar, timer, s
 portraits, buttons, logo), FX (hit spark, projectile), and 1–2 **concept boards** that fix
 the palette and mood.
 
+**Per-character animation breakdown.** Don't list a character as one asset — decompose it
+into its **animation states**, the way a real sprite pack does (cf. the `Warped` pack:
+`Characters/<name>/Sprites/{Idle, walk, …}/` + a `Spritesheets/` roll-up). For each
+character and each enemy, enumerate every state the gameplay actually plays, and give each
+state its own manifest entry:
+
+| state | typical `type` | frames | notes |
+|-------|---------------|--------|-------|
+| idle | `sprite` (or `spritesheet` if it breathes) | 1–4 | the base pose; every other state `ref`s this |
+| walk / run | `spritesheet` | 4–8 | contact/passing cycle (`frameNotes`) |
+| each signature action (attack, jump, cast, hit-react, death) | `spritesheet` | 3–6 | wind-up → active → recover |
+
+Name states with a stable convention `<char>_<state>` — that stem IS the folder-analogue
+(`alien_walking_idle`, `alien_walking_walk`, `alien_walking_attack`). The state list here
+must match the frame data the gameplay phase drives and the `SpriteLoader.Get` keys it asks
+for. Idle carries the design; every other state sets `ref` to the idle so the character
+stays on-model across the set.
+
+**Environments** get the same treatment — enumerate each one separately (background /
+backdrop layers, tiles, props), like the pack's `Environments/` split (per-scene folders).
+List parallax layers as distinct `bg` entries when the stage scrolls.
+
 - **`ASSETS.md`** (human): a global **style guide** paragraph (palette, line weight,
   era/genre, lighting, render style) + a table of asset → type → size → frame count →
   one-line art intent. This is the analysis a reader audits before any tokens are spent.
+  **Group the table by entity** (one sub-section per character / enemy / stage / UI / FX,
+  set on each entry's `category`) with that entity's animation states listed together —
+  mirrors the per-character folder layout above so a reader sees each actor's full state set
+  at a glance.
 - **`assets.manifest.json`** (machine): the contract the asset generator reads — one entry
   per asset with a stable Unity-friendly `id` (becomes the PNG filename AND the runtime
   lookup key), `type`, `prompt`, `background`, optional `frames`/`ref`. The global `style`
