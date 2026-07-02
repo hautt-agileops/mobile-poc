@@ -1,8 +1,0 @@
-Generated: 2026-06-29T03:29:05.697Z
-Task: 019f116a-53ae-7d95-941c-f03b45daa952
-Provider: meshy
-Formats: glb
-Constraints: round badge ~50mm dia, domed enamel face, raised central emblem
-
-Prompt:
-A circular enamel badge medallion with a glossy royal-blue domed front face, a raised dark-navy emblem in the center depicting a stylized symmetric horned creature symbol, smooth polished enamel-like finish, a clean metallic rim around the edge, flat solid colors, simple disc geometry.

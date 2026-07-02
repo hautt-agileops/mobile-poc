@@ -1,8 +1,0 @@
-Generated: 2026-06-17T09:16:21.415Z
-Task: 019ed4db-7535-7e7d-b7bd-0eb24fba1aa9
-Provider: meshy
-Formats: glb
-Constraints: rusted steel panel, peeling olive paint, pitted metal
-
-Prompt:
-A weathered rusted steel panel, flat rectangular plate. Orange-brown oxidation with darker corroded patches, peeling olive-green industrial paint flaking off to reveal pitted bare metal beneath, subtle surface scratches and grime settled in the recesses, matte corroded finish.

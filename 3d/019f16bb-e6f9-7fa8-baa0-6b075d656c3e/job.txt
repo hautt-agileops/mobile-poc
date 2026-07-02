@@ -1,5 +1,0 @@
-3 existing IGES (.igs) outer shells of a noise-reducing children's ear muff.
-Need defined modifications, return clean updated files. Direct geometry edits OK
-(no full parametric rebuild). Part is surfaced/freeform — surface-modeling required.
-Scope: 1) import+inspect .igs, report geometry problems; 2) modify designs slightly
-to create interesting unique forms; 3) confirm edited shell watertight + manufacturable.

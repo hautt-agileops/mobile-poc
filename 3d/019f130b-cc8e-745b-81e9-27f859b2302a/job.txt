@@ -1,2 +1,0 @@
-3D artist to interpret and execute jewelry concepts from a provided image.
-Concept: gold diamond bracelet. Professional 3D modeling + rendering result.

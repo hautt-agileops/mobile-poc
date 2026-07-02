@@ -48,3 +48,6 @@ viewer/.vercel/
 
 # ── unity-poc pipeline outputs ──
 unity/output/
+
+# ── 3d generated model outputs ──
+3d/
