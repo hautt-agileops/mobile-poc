@@ -45,6 +45,10 @@ viewer/.vercel/
 # ── Generated game assets (regenerated from manifests) ──
 **/Assets/Resources/Art/
 **/Assets/Resources/Models/
+unity/Assets/Art/
+
+# ── Portal viewer heavy binaries (deployed via Vercel, not tracked) ──
+.claude/skills/3d-prompt/viewer/assets/
 
 # ── unity-poc pipeline outputs ──
 unity/output/

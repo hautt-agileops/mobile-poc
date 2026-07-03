@@ -22,8 +22,8 @@ a default per question.
 
 | brief | template | namespace | assets |
 |-------|----------|-----------|--------|
-| **2D fighter / arcade** | `template/` | `Fighter` | 2D PNG sprites (`assets.manifest.json`) |
-| **3D arena brawler** | `template3d/` | `Fighter3D` | Meshy GLB models (`models.manifest.json`) |
+| **2D fighter / arcade** | `templates/fighter2d/` | `Fighter` | 2D PNG sprites (`assets.manifest.json`) |
+| **3D arena brawler** | `templates/arena3d/` | `Fighter3D` | Meshy GLB models (`models.manifest.json`) |
 | **platformer / cozy / other** | — | your own | write from scratch |
 
 A **non-fighter** brief keeps the pipeline but the gameplay layer and `Playtest`
@@ -130,7 +130,7 @@ List parallax layers as distinct `bg` entries when the stage scrolls.
   `models: [{id, prompt}]` list, one entry per 3D character. `id` == `CharacterDef3D.modelId`
   == `Assets/Resources/Models/<id>.bytes` (one namespace, like the 2D ids). UI sprites
   (HUD/logo/buttons) are still 2D and can stay in `assets.manifest.json`; characters become
-  GLB models. Sample: `../unity-poc/template3d/models.manifest.json`.
+  GLB models. Sample: `../unity-poc/templates/arena3d/models.manifest.json`.
 
 ## Next phase
 

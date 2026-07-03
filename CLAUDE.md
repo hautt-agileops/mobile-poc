@@ -155,7 +155,7 @@ Worker-less: game brief → design docs → code-driven Unity project → WebGL 
 | phase | kind | name | steps | output |
 |-------|------|------|-------|--------|
 | Spec | skill | `unity-poc-spec` | 1–3 | `PRD.md` → `TDD.md` → `ASSETS.md` / `assets.manifest.json` / `models.manifest.json` |
-| Scaffold | agent | `unity-scaffold` | 4–5 | Unity project created headlessly; `template/` or `template3d/` copied |
+| Scaffold | agent | `unity-scaffold` | 4–5 | Unity project created headlessly; `templates/fighter2d/` or `templates/arena3d/` copied |
 | Assets | agent | `unity-assets` | 6 | PNGs → `Resources/Art/` (2D); GLBs → `Resources/Models/` (3D). Never a hard gate — missing art falls back to flat color / primitive capsule |
 | Gameplay | skill | `unity-poc-gameplay` | 7 | `Assets/Scripts/Game/` authored; `BuildRoster()` exposed |
 | Build+Ship | agent | `unity-buildship` | 8–13 | Headless playtest gate → WebGL build → local puppeteer boot test → `deploy-vercel.sh` → `HANDOFF.md` |
@@ -169,9 +169,14 @@ standalone/3d-model publishes from the main loop.
 
 | brief | template | namespace | assets |
 |-------|----------|-----------|--------|
-| 2D fighter / arcade | `template/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) |
-| 3D arena brawler | `template3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast) |
+| 2D fighter / arcade | `templates/fighter2d/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) |
+| 3D arena brawler | `templates/arena3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast) |
 | platformer / cozy / other | — | your own | write from scratch; reuse pipeline + scripts only |
+
+Genres are **self-contained folders under `templates/`** (no shared C# core — 2D/3D already
+diverge in loader/camera/fallback). Add a new genre by copying one and honoring the two Editor
+entry methods + `BuildRoster()` reflection contract in
+`skills/unity-poc/references/genre-contract.md`.
 
 ### Key gotchas
 

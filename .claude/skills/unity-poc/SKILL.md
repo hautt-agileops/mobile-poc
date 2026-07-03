@@ -24,7 +24,7 @@ asset gen, WebGL build, puppeteer, vercel) must stay off the main thread:
 | gameplay (7) | **skill** | load `unity-poc-gameplay` (author code in main loop) |
 | build+ship (8–13) | **agent** | spawn `unity-buildship` |
 
-Shared assets (`template/`, `template3d/`, `scripts/`, `references/`) live in **this** skill
+Shared assets (`templates/fighter2d/`, `templates/arena3d/`, `scripts/`, `references/`) live in **this** skill
 dir. The sub-skills reference them by `../unity-poc/...`; the agents live in `.claude/agents/`
 so they reference `.claude/skills/unity-poc/...`. Full landmine list, once:
 `references/gotchas.md`. Map + flow chart: `README.md`.
@@ -70,8 +70,8 @@ genre-agnostic. Two bundled fighter frameworks ship:
 
 | brief | template | namespace | assets | build/playtest method |
 |-------|----------|-----------|--------|-----------------------|
-| **2D fighter / arcade** | `template/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) | `Fighter.EditorTools.BuildScript.*` |
-| **3D arena brawler** | `template3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast) | `Fighter3D.EditorTools.BuildScript.*` |
+| **2D fighter / arcade** | `templates/fighter2d/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) | `Fighter.EditorTools.BuildScript.*` |
+| **3D arena brawler** | `templates/arena3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast) | `Fighter3D.EditorTools.BuildScript.*` |
 | **platformer / cozy / other** | — | your own | write from scratch | direct Unity CLI, your namespace |
 
 Both are full fighters with parity: state machine, install/stance/projectile, best-of-3 round
@@ -85,6 +85,11 @@ scripts but you write the gameplay layer from scratch and rewrite the `Playtest`
 the `BuildRoster()` contract assumes a fighter roster. Don't promise "reuse the framework" for
 a non-fighter. See `references/fighter-framework.md` (2D) and `references/3d-framework.md` (3D).
 
+**Genres are self-contained folders** under `templates/` (no shared C# core — 2D/3D already
+diverge in loader/camera/fallback). To add a genre, copy an existing folder and honor the two
+Editor entry methods + `BuildRoster()` reflection shape — full contract in
+`references/genre-contract.md`.
+
 ## Pipeline — run the phases in order
 
 Load skills into the main loop; spawn agents via the Task tool (pass the project path + the
@@ -94,8 +99,8 @@ Load skills into the main loop; spawn agents via the Task tool (pass the project
    `PRD.md` → `TDD.md` (design docs), then `ASSETS.md` → `assets.manifest.json` /
    `models.manifest.json` (the asset contract). Design-first so the build hits no surprises.
 2. **agent `unity-scaffold`** (steps 4–5) — check the env (Unity 6000.x + WebGL, Vercel, Node,
-   Vertex/Meshy creds), then headlessly create the project and copy `template/` or
-   `template3d/` + `com.unity.ugui` (+ glTFast for real 3D models). It returns the project path
+   Vertex/Meshy creds), then headlessly create the project and copy `templates/fighter2d/` or
+   `templates/arena3d/` + `com.unity.ugui` (+ glTFast for real 3D models). It returns the project path
    or an env-missing report — **stop the pipeline if Unity/WebGL is missing.**
 3. **agent `unity-assets`** (step 6) — generate real art from the manifest via `game-asset-gen`
    (2D PNGs → `Resources/Art/`, REQUIRED `alpha_key.py`) and `gen-models.mjs` → `3d-prompt`
@@ -118,9 +123,9 @@ in the main loop to fix, then re-spawn `unity-buildship`.
 
 ## Shared assets (in this skill dir)
 
-- **`template/`** — 2D fighter framework (`Framework/`, `Editor/`, `link.xml`). Detail:
+- **`templates/fighter2d/`** — 2D fighter framework (`Framework/`, `Editor/`, `link.xml`). Detail:
   `references/fighter-framework.md`.
-- **`template3d/`** — 3D arena-brawler framework (`Framework3D/`, `Editor/`, `models.manifest.json`).
+- **`templates/arena3d/`** — 3D arena-brawler framework (`Framework3D/`, `Editor/`, `models.manifest.json`).
   Detail: `references/3d-framework.md`.
 - **`scripts/`** — `playtest.sh`, `build-webgl.sh`, `local-test.sh`, `deploy-vercel.sh`,
   `browser-test.mjs` (+ `package.json` for puppeteer-core). Namespace-selectable via

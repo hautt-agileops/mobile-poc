@@ -1,6 +1,6 @@
 # 3D brawler framework reference
 
-How to turn a 3D fighting/arena brief into content on top of the bundled `template3d/`
+How to turn a 3D fighting/arena brief into content on top of the bundled `templates/arena3d/`
 framework. The `Framework3D/` layer (namespace `Fighter3D`) is reused verbatim; you only write
 a `Game/` file — exactly the same contract as the 2D fighter, one dimension up.
 

@@ -31,11 +31,11 @@ via `[RuntimeInitializeOnLoadMethod]`. Each character is a `CharacterDef` (stats
   `CharacterDef3D` (set `modelId` to the `models.manifest.json` id), expose
   `public static List<CharacterDef3D> BuildRoster()`, boot `GameBootstrap3D`. Models load
   automatically via `ModelLoader`/glTFast (no manual wiring); missing/failed → primitive
-  capsule. Worked example: `../unity-poc/template3d/Assets/Scripts/Game/ArenaClash3D.cs`.
+  capsule. Worked example: `../unity-poc/templates/arena3d/Assets/Scripts/Game/ArenaClash3D.cs`.
 
 ## Architecture — bundled 2D-fighter framework
 
-`../unity-poc/template/Assets/Scripts/Framework/` — engine-agnostic of the brief, reused per job:
+`../unity-poc/templates/fighter2d/Assets/Scripts/Framework/` — engine-agnostic of the brief, reused per job:
 
 - **`GameBootstrap.cs`** — the single scene object. Builds camera/stage/HUD, runs
   `Select → RoundIntro → Fight → RoundEnd → MatchEnd`. Fixed 60fps loop in `FixedUpdate`.
@@ -59,7 +59,7 @@ via `[RuntimeInitializeOnLoadMethod]`. Each character is a `CharacterDef` (stats
 
 ## Architecture — bundled 3D-brawler framework
 
-`../unity-poc/template3d/Assets/Scripts/Framework3D/` — namespace `Fighter3D`, full parity
+`../unity-poc/templates/arena3d/Assets/Scripts/Framework3D/` — namespace `Fighter3D`, full parity
 with the 2D fighter (same shapes: `GameBootstrap3D`, `Fighter3D`, `CombatSystem3D`,
 `MoveData3D`/`CharacterDef3D`, `InputReader3D`, `HudController3D`/`SelectMenu3D`/`StoryOverlay3D`,
 `CameraRig3D`, `Playtest3D`, `Editor/BuildScript3D.cs`) with the 3D deltas:

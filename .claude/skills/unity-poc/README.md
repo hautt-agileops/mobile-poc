@@ -5,7 +5,7 @@ sprites via Vertex AI nano-banana, **3D** models via Meshy/glTFast) → code-dri
 project → headless playtest → WebGL build → local browser test → public Vercel URL.
 Everything spawns from C# at runtime (one empty boot scene, no hand-authored scenes or
 prefabs) so the whole pipeline runs headless. Ships **two** full fighter frameworks — a 2D
-fighter (`template/`) and a 3D arena brawler (`template3d/`).
+fighter (`templates/fighter2d/`) and a 3D arena brawler (`templates/arena3d/`).
 
 > **`SKILL.md` is the contract** — a thin orchestrator. The 13-step pipeline is split into
 > five phases: two run **in the main loop as skills**, three as **isolated agents** the
@@ -14,7 +14,7 @@ fighter (`template/`) and a 3D arena brawler (`template3d/`).
 > agent `unity-assets` (6, gen art) → skill `unity-poc-gameplay` (7, author `Game/`) →
 > agent `unity-buildship` (8–13, playtest/build/deploy/handoff). Split rule: interactive /
 > code-authoring stay skills; non-interactive execution with noisy logs become agents. Shared
-> assets (`template*/`, `scripts/`, `references/`) stay in **this** dir; skills reference them
+> assets (`templates/*/`, `scripts/`, `references/`) stay in **this** dir; skills reference them
 > by `../unity-poc/…`, agents (in `.claude/agents/`) by `.claude/skills/unity-poc/…`.
 > Full gotchas: `references/gotchas.md`. When docs disagree, the phase file wins; fix this one.
 
@@ -36,8 +36,8 @@ flowchart TD
     end
 
     subgraph S2[agent unity-scaffold · steps 4-5]
-      E[4. Check env<br/>Unity+WebGL · Vercel · Node · Vertex SA · Meshy] -->|2D| F2[5a. Scaffold template/ + ugui]
-      E -->|3D| F3[5b. Scaffold template3d/ + ugui<br/>+ gltfast + csc.rsp HAS_GLTFAST]
+      E[4. Check env<br/>Unity+WebGL · Vercel · Node · Vertex SA · Meshy] -->|2D| F2[5a. Scaffold templates/fighter2d/ + ugui]
+      E -->|3D| F3[5b. Scaffold templates/arena3d/ + ugui<br/>+ gltfast + csc.rsp HAS_GLTFAST]
     end
 
     subgraph S3[agent unity-assets · step 6]
@@ -76,7 +76,7 @@ flowchart TD
     style Gf3 fill:#e7f0ff,stroke:#5588cc
 ```
 
-Five phases (2 skills + 3 agents), run in order; shared assets (`template*/`, `scripts/`,
+Five phases (2 skills + 3 agents), run in order; shared assets (`templates/*/`, `scripts/`,
 `references/`) stay in the root dir. Both dimensions converge after asset gen onto the same
 gates. Two hard gates guard the deploy: **playtest** (aborts the build) and **local browser
 test** (aborts the deploy) — the `unity-buildship` agent returns the failure and the
@@ -92,8 +92,8 @@ fighters with a headless `Playtest*` gate that reflects on `BuildRoster()`.
 
 | brief | template | namespace | assets | playtest | invocation |
 |-------|----------|-----------|--------|----------|------------|
-| **2D fighter / arcade** | `template/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) | reuse fighter gate | `scripts/*.sh` (default `Fighter.*`) |
-| **3D arena brawler** | `template3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast, primitive fallback) | reuse `Playtest3D` gate | `scripts/*.sh` + `BUILD_METHOD`/`PLAYTEST_METHOD=Fighter3D.*` env |
+| **2D fighter / arcade** | `templates/fighter2d/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) | reuse fighter gate | `scripts/*.sh` (default `Fighter.*`) |
+| **3D arena brawler** | `templates/arena3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast, primitive fallback) | reuse `Playtest3D` gate | `scripts/*.sh` + `BUILD_METHOD`/`PLAYTEST_METHOD=Fighter3D.*` env |
 | **platformer / cozy / other** | — | your own | write from scratch | **rewrite** `Playtest` assertions | direct Unity CLI with your namespace's `BuildWebGL` / `Playtest.Run` |
 
 The 3D framework moves on the XZ plane with **sphere-based** hit/hurt volumes (rotation-free,
@@ -144,7 +144,7 @@ compiles → 6/6 playtest matchups → WebGL build → clean browser boot. See
 13. **`HANDOFF.md`** — systems, controls, known limits, next steps, and which assets are
     real vs flat-color fallback.
 
-## Framework (reused per *fighter* job — `template/Assets/Scripts/Framework/`)
+## Framework (reused per *fighter* job — `templates/fighter2d/Assets/Scripts/Framework/`)
 
 - **`GameBootstrap.cs`** — single scene object; builds camera/stage/HUD, runs
   `Select → RoundIntro → Fight → RoundEnd → MatchEnd` at fixed 60fps in `FixedUpdate`.
@@ -167,7 +167,7 @@ compiles → 6/6 playtest matchups → WebGL build → clean browser boot. See
 > sprite HUD to dodge uGUI stripping, a zero-dep tween/particle juice layer, `SpriteLoader`
 > + fallback). It does **not** reuse `Fighter`/`CombatSystem`/the fighter `Playtest`.
 
-## 3D framework (reused per *brawler* job — `template3d/Assets/Scripts/Framework3D/`)
+## 3D framework (reused per *brawler* job — `templates/arena3d/Assets/Scripts/Framework3D/`)
 
 Namespace `Fighter3D`, full parity with the 2D fighter — same files one dimension up
 (`GameBootstrap3D`, `Fighter3D`, `CombatSystem3D`, `MoveData3D`/`CharacterDef3D`,
@@ -214,13 +214,13 @@ Namespace `Fighter3D`, full parity with the 2D fighter — same files one dimens
 | project | genre | notes |
 |---------|-------|-------|
 | `blood-bloom-protocol/` | 2D fighter | reuses `Framework/` verbatim; only the `Game/` roster file is job-specific |
-| `template3d/` (ArenaClash3D) | 3D arena brawler | bundled example; 3 fighters (rushdown/stance/zoning). Validated: compiles → 6/6 playtest → WebGL build → clean browser boot |
+| `templates/arena3d/` (ArenaClash3D) | 3D arena brawler | bundled example; 3 fighters (rushdown/stance/zoning). Validated: compiles → 6/6 playtest → WebGL build → clean browser boot |
 | `tiny-pet/` | cozy virtual pet | non-fighter; own scripts + juice harness, no fighter framework |
 | `stack-and-bake/` | cozy cooking | non-fighter; **full new asset-gen path** — real nano-banana sprites + `alpha_key.py`, `SpriteLoader` + `Art` fallback. Live: `stack-and-bake.vercel.app` |
 
 ## Best fit
 
 Single-scene, mechanics-first prototypes. **2D fighter** and **3D arena brawler** briefs are
-the fast path (reuse `template/` or `template3d/` verbatim, write only the `Game/` roster).
+the fast path (reuse `templates/fighter2d/` or `templates/arena3d/` verbatim, write only the `Game/` roster).
 Platformer / arcade / cozy briefs use the pipeline + the cozy scaffold pattern and write their
 own gameplay + playtest.

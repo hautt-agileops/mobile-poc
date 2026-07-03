@@ -1,5 +1,22 @@
 [
   {
+    "id": "blood-bloom-arena",
+    "title": "Blood Bloom Arena",
+    "url": "https://blood-bloom-arena.vercel.app",
+    "thumb": "blood-bloom-arena.png",
+    "engine": "Unity WebGL",
+    "created": "2026-07-03"
+  },
+  {
+    "id": "blood-bloom-protocol",
+    "title": "Blood Bloom Protocol",
+    "url": "https://blood-bloom-protocol-drab.vercel.app",
+    "thumb": "blood-bloom-protocol.png",
+    "engine": "Unity WebGL",
+    "created": "2026-07-02",
+    "description": "VYRE vs AXIOM — a 2D cyber-horror versus fighter"
+  },
+  {
     "id": "hau-retro-space-shmup",
     "title": "Retro Space Shooter",
     "url": "https://hau-retro-space-shmup.vercel.app",

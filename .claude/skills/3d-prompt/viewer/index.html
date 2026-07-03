@@ -88,6 +88,46 @@
     .play-bar h2 { font-size: 15px; margin: 0; }
     .play-frame { flex: 1; border: 0; width: 100%; background: #000; }
 
+    /* Assets — sprite grid + packs */
+    .sprite-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    .checker {
+      background-color: #14181d;
+      background-image:
+        linear-gradient(45deg, #1b2027 25%, transparent 25%, transparent 75%, #1b2027 75%),
+        linear-gradient(45deg, #1b2027 25%, transparent 25%, transparent 75%, #1b2027 75%);
+      background-size: 16px 16px; background-position: 0 0, 8px 8px;
+    }
+    .sprite {
+      border: 1px solid #1c2127; border-radius: 8px; overflow: hidden; cursor: zoom-in;
+      transition: border-color .15s, transform .15s;
+    }
+    .sprite:hover { border-color: #2d6cdf; transform: translateY(-2px); }
+    .sprite img {
+      width: 100%; aspect-ratio: 1; object-fit: contain; display: block;
+      image-rendering: pixelated; padding: 6px;
+    }
+    .sprite .cap { font-size: 10px; color: #8b939c; padding: 4px 6px 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .group-h { font-size: 12px; color: #c4c9cf; font-weight: 600;
+      margin: 22px 0 10px; text-transform: none; letter-spacing: 0;
+      border-top: 1px solid #1c2127; padding-top: 14px; }
+    .group-h:first-of-type { border-top: 0; margin-top: 6px; padding-top: 0; }
+    /* Lightbox */
+    .lb {
+      position: fixed; inset: 0; z-index: 50; display: none;
+      align-items: center; justify-content: center; padding: 40px;
+      background: #000000e0; backdrop-filter: blur(6px);
+    }
+    .lb.open { display: flex; }
+    .lb img { max-width: 90vw; max-height: 82vh; object-fit: contain;
+      border-radius: 8px; }
+    .lb .lb-bar { position: fixed; top: 0; left: 0; right: 0; display: flex;
+      align-items: center; gap: 14px; padding: 14px 20px; }
+    .lb .lb-name { font-size: 14px; color: #e6e8eb; }
+    .lb .lb-close { margin-left: auto; }
     .empty { text-align: center; color: #8b939c; padding: 80px 20px; }
     @media (max-width: 720px) {
       .viewer-layout { grid-template-columns: 1fr; height: auto; }
@@ -112,6 +152,7 @@
   <script>
     const MODELS = 'models';
     const GAMES = 'games';
+    const ASSETS = 'assets';
     const app = document.getElementById('app');
     const countEl = document.getElementById('count');
     const tabsEl = document.getElementById('tabs');
@@ -137,7 +178,7 @@
       const mk = (key, label) =>
         `<a class="tab ${cat === key ? 'active' : ''}" href="?cat=${key}">${label}` +
         (counts[key] ? ` <span style="opacity:.7">${counts[key]}</span>` : '') + `</a>`;
-      tabsEl.innerHTML = mk('gallery', 'Gallery') + mk('games', 'Games');
+      tabsEl.innerHTML = mk('gallery', 'Gallery') + mk('games', 'Games') + mk('assets', 'Assets');
     }
 
     /* ---- Gallery (3D models) ---- */
@@ -236,19 +277,101 @@
         </div>`;
     }
 
+    /* ---- Assets (2D sprite/art packs) ---- */
+    function renderAssetPacks(packs) {
+      document.title = 'Assets · Studio';
+      const imgs = packs.reduce((n, p) => n + (p.count || 0), 0);
+      countEl.textContent = packs.length
+        ? `${packs.length} pack${packs.length === 1 ? '' : 's'} · ${imgs} images` : '';
+      if (!packs.length) {
+        app.innerHTML = `<div class="empty">No asset packs published yet.</div>`;
+        return;
+      }
+      app.innerHTML = `<div class="grid">${packs.map(p => `
+        <div class="card">
+          <span class="badge">2D · ${p.count}</span>
+          <a href="?pack=${encodeURIComponent(p.id)}">
+          <img class="thumb checker" style="object-fit:contain;padding:14px"
+               src="${ASSETS}/${p.id}/${encodeURIComponent(p.cover || '')}"
+               loading="lazy" alt="${esc(p.title)}"
+               onerror="this.style.visibility='hidden'">
+          <div class="meta">
+            <div class="title">${esc(p.title || p.id)}</div>
+            <div class="sub">${p.count} asset${p.count === 1 ? '' : 's'}</div>
+          </div>
+        </a></div>`).join('')}</div>`;
+    }
+
+    async function renderAssetPack(id) {
+      const pack = await loadJSON(`${ASSETS}/${id}/manifest.json`);
+      if (!pack || !pack.items) {
+        app.innerHTML =
+          `<div class="empty">Pack <code>${esc(id)}</code> not found. <a href="?cat=assets">Back to assets</a></div>`;
+        return;
+      }
+      document.title = (pack.title || id) + ' · Studio';
+      countEl.textContent = `${pack.count} asset${pack.count === 1 ? '' : 's'}`;
+      const base = `${ASSETS}/${id}`;
+      // group items by their subfolder for section headers
+      const groups = {};
+      for (const it of pack.items) (groups[it.group || ''] ??= []).push(it);
+      const sections = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+      const cell = (it) => `
+        <div class="sprite checker" data-src="${base}/${it.path.split('/').map(encodeURIComponent).join('/')}"
+             data-name="${esc(it.name)}">
+          <img src="${base}/${it.path.split('/').map(encodeURIComponent).join('/')}"
+               loading="lazy" alt="${esc(it.name)}" onerror="this.style.visibility='hidden'">
+          <div class="cap">${esc(it.name)}</div>
+        </div>`;
+      app.innerHTML = `
+        <div style="margin-bottom:14px"><a href="?cat=assets">&larr; Assets</a>
+          <span style="color:#8b939c"> / ${esc(pack.title || id)}</span></div>
+        ${sections.map(s => `
+          ${s ? `<div class="group-h">${esc(s)}</div>` : ''}
+          <div class="sprite-grid">${groups[s].map(cell).join('')}</div>`).join('')}`;
+      // lightbox wiring (event delegation)
+      app.querySelectorAll('.sprite').forEach(el =>
+        el.addEventListener('click', () => openLightbox(el.dataset.src, el.dataset.name)));
+    }
+
+    function openLightbox(src, name) {
+      let lb = document.getElementById('lb');
+      if (!lb) {
+        lb = document.createElement('div');
+        lb.id = 'lb'; lb.className = 'lb';
+        lb.innerHTML = `
+          <div class="lb-bar">
+            <span class="lb-name" id="lbName"></span>
+            <a class="btn lb-close" id="lbDl" download>Download</a>
+            <button class="btn" id="lbX">Close ✕</button>
+          </div>
+          <img id="lbImg" class="checker" alt="">`;
+        document.body.appendChild(lb);
+        lb.addEventListener('click', e => { if (e.target === lb) lb.classList.remove('open'); });
+        lb.querySelector('#lbX').addEventListener('click', () => lb.classList.remove('open'));
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('open'); });
+      }
+      lb.querySelector('#lbImg').src = src;
+      lb.querySelector('#lbName').textContent = name || '';
+      lb.querySelector('#lbDl').href = src;
+      lb.classList.add('open');
+    }
+
     (async () => {
       try {
-        const [models, games] = await Promise.all([
+        const [models, games, packs] = await Promise.all([
           loadJSON(`${MODELS}/manifest.json`),
           loadJSON(`${GAMES}/manifest.json`),
+          loadJSON(`${ASSETS}/manifest.json`),
         ]);
-        const counts = { gallery: models.length, games: games.length };
+        const counts = { gallery: models.length, games: games.length, assets: packs.length };
         const q = new URLSearchParams(location.search);
         const id = q.get('id');
         const gameId = q.get('game');
-        let cat = q.get('cat') || (gameId ? 'games' : 'gallery');
+        const packId = q.get('pack');
+        let cat = q.get('cat') || (gameId ? 'games' : packId ? 'assets' : 'gallery');
 
-        renderTabs(id ? 'gallery' : cat, counts);
+        renderTabs(id ? 'gallery' : packId ? 'assets' : cat, counts);
 
         if (id) {
           const m = models.find(x => x.id === id);
@@ -260,8 +383,12 @@
           if (g) renderGame(g);
           else app.innerHTML =
             `<div class="empty">Game <code>${esc(gameId)}</code> not found. <a href="?cat=games">Back to games</a></div>`;
+        } else if (packId) {
+          await renderAssetPack(packId);
         } else if (cat === 'games') {
           renderGames(games);
+        } else if (cat === 'assets') {
+          renderAssetPacks(packs);
         } else {
           renderGallery(models);
         }

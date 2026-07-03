@@ -328,9 +328,24 @@ function typeDirective(type) {
   }
 }
 
-function composePrompt(asset, style) {
+// Canonical per-character identity, keyed by the id prefix before the first "_"
+// (vyre_hp -> "vyre"). Restated in EVERY frame's prompt so the model can't drift
+// the design across states — the single ref image alone is too weak to hold it.
+function identityFor(asset, identities) {
+  if (!identities) return "";
+  const id = asset.id || "";
+  const us = id.indexOf("_");
+  const key = us > 0 ? id.slice(0, us).toLowerCase() : id.toLowerCase();
+  return identities[key] || "";
+}
+
+function composePrompt(asset, style, identities) {
+  const identity = identityFor(asset, identities);
   return [
     typeDirective(asset.type),
+    identity
+      ? `CHARACTER — the SAME individual with an identical design in every frame and every move (do not redesign, recolor, or re-proportion between frames): ${identity}`
+      : "",
     asset.prompt,
     style ? `Art style: ${style}` : "",
     backgroundDirective(asset.background),
@@ -373,7 +388,7 @@ const IMAGE_MODEL_CHAIN = (() => {
 })();
 
 // contents: full multi-turn history (so spritesheet frames stay consistent).
-async function generateWithRetry(contents, size) {
+async function generateWithRetry(contents, size, aspect) {
   let lastErr;
   for (let mi = 0; mi < IMAGE_MODEL_CHAIN.length; mi++) {
     const model = IMAGE_MODEL_CHAIN[mi];
@@ -388,7 +403,13 @@ async function generateWithRetry(contents, size) {
             contents,
             generationConfig: {
               responseModalities: ["IMAGE"],
-              imageConfig: { imageSize: coerceSize(size) },
+              imageConfig: {
+                imageSize: coerceSize(size),
+                // Lock aspect so every frame shares one canvas (feet-on-groundline
+                // alignment in-engine). Omitted → model free-picks and states drift
+                // between 16:9 and 1:1.
+                ...(aspect ? { aspectRatio: aspect } : {}),
+              },
             },
           }),
         });
@@ -430,7 +451,23 @@ async function generateWithRetry(contents, size) {
 // Generate one asset. For spritesheet (frames > 1) generate N consistent frames
 // via multi-turn history. A `ref` id reuses an already-generated image as visual
 // context so related assets stay on-model. Returns [{name, buf}].
-async function generateAsset(asset, style, refBuf) {
+// Multi-turn spritesheet history accumulates a full-res image per frame; past a
+// handful the request trips Vertex's input-image cap (400 INVALID_ARGUMENT). Keep
+// only the most recent image-bearing turns — the seed ref (turn 0, if present) plus
+// enough recent frames to chain consistency. Text-only turns always pass through.
+function trimHistory(history, maxImages) {
+  const imgIdx = [];
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].parts?.some((p) => p.inlineData)) imgIdx.push(i);
+  }
+  if (imgIdx.length <= maxImages) return history;
+  // Always keep the first image (the reference/anchor); drop oldest of the rest.
+  const keep = new Set([imgIdx[0], ...imgIdx.slice(-(maxImages - 1))]);
+  const dropped = new Set(imgIdx.filter((i) => !keep.has(i)));
+  return history.filter((_, i) => !dropped.has(i));
+}
+
+async function generateAsset(asset, style, refBuf, identities, aspect) {
   const size = asset.size || "1K";
   const frames = Math.max(1, asset.frames || 1);
   const history = [];
@@ -456,17 +493,22 @@ async function generateAsset(asset, style, refBuf) {
 
   const out = [];
   for (let f = 0; f < frames; f++) {
-    const base = composePrompt(asset, style);
+    const base = composePrompt(asset, style, identities);
     const text =
       frames === 1
         ? base
         : f === 0
-          ? `${base}\n\nThis is frame 1 of a ${frames}-frame animation: the rest pose / first key.`
+          ? `${base}\n\nThis is frame 1 of a ${frames}-frame animation: the rest pose / first key. Draw ONE single frame only — never a grid, contact sheet, or multiple poses in one image.`
           : `Now frame ${f + 1} of ${frames} for the EXACT same character — ` +
             `${asset.frameNotes?.[f] || "next key pose of the animation cycle"}. ` +
-            "Identical style, colors, proportions, line weight, same framing.";
+            "Identical style, colors, proportions, line weight, same framing. " +
+            "ONE single frame only — no grid, no contact sheet, no multiple poses.";
     history.push({ role: "user", parts: [{ text }] });
-    const { imageData, thoughtSignature } = await generateWithRetry(history, size);
+    const { imageData, thoughtSignature } = await generateWithRetry(
+      trimHistory(history, refBuf ? 3 : 2),
+      size,
+      aspect,
+    );
     const modelPart = { inlineData: { mimeType: "image/png", data: imageData } };
     if (thoughtSignature) modelPart.thoughtSignature = thoughtSignature;
     history.push({ role: "model", parts: [modelPart] });
@@ -497,6 +539,18 @@ async function main() {
   const outDir = o.outDir || manifest.outDir || "Assets/Resources/Art";
   const style = manifest.style || "";
   const nested = o.group || manifest.layout === "nested";
+  // Per-character canonical identity, restated in every frame's prompt.
+  const identities = manifest.identities || null;
+  // Optional per-manifest default aspect ratio (asset.aspect overrides per asset).
+  const defaultAspect = manifest.aspect || "";
+  // Resolve a ref's first-frame PNG path so a ref can load from DISK even when the
+  // ref target isn't in THIS run (piecemeal -i regen keeps pulling the locked idle).
+  const refPathOf = (refId) => {
+    const ra = manifest.assets.find((x) => x.id === refId);
+    if (!ra) return "";
+    const rName = (ra.frames || 1) === 1 ? `${refId}.png` : `${refId}_0.png`;
+    return join(outDir, subFor(ra, nested), rName);
+  };
 
   if (!o.dry && !resolveProject())
     die(
@@ -534,7 +588,7 @@ async function main() {
 
     if (o.dry) {
       console.log(`\n--- ${asset.id} [${asset.type}] ---`);
-      console.log(composePrompt(asset, style));
+      console.log(composePrompt(asset, style, identities));
       continue;
     }
     work.push(asset);
@@ -545,10 +599,16 @@ async function main() {
   // ---- generate one asset (shared by serial + parallel paths) ---------------
   const genOne = async (asset) => {
     try {
-      // ref buffer only exists once the ref target has finished this run
-      const refBuf = asset.ref ? generated.get(asset.ref) : undefined;
-      say(`${asset.id} (${asset.type}${asset.frames > 1 ? `, ${asset.frames}f` : ""})`);
-      const imgs = await generateAsset(asset, style, refBuf);
+      // ref buffer: prefer the in-run generated one; else load the locked ref PNG
+      // from disk (so a lone -i regen still anchors to the already-approved idle).
+      let refBuf = asset.ref ? generated.get(asset.ref) : undefined;
+      if (asset.ref && !refBuf) {
+        const rp = refPathOf(asset.ref);
+        if (rp && existsSync(rp)) refBuf = readFileSync(rp);
+      }
+      const aspect = asset.aspect || defaultAspect || "";
+      say(`${asset.id} (${asset.type}${asset.frames > 1 ? `, ${asset.frames}f` : ""}${aspect ? `, ${aspect}` : ""}${refBuf ? ", ref✓" : ""})`);
+      const imgs = await generateAsset(asset, style, refBuf, identities, aspect);
       const sub = subFor(asset, nested);
       const destDir = sub ? join(outDir, sub) : outDir;
       if (sub) await mkdir(destDir, { recursive: true });

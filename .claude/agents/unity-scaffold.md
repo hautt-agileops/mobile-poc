@@ -1,6 +1,6 @@
 ---
 name: unity-scaffold
-description: Phase 2 of the unity-poc pipeline (steps 4–5), run as an isolated agent — check the build environment then headlessly create the code-driven Unity project. Verifies Unity 6000.x + WebGL module, Vercel CLI, Node, and Vertex/Meshy creds, then creates the project and copies the 2D (template/) or 3D (template3d/) fighter framework plus com.unity.ugui (+ glTFast for real 3D models). Spawned by the unity-poc orchestrator after the spec phase; returns the project path (or an env-missing report). Non-interactive.
+description: Phase 2 of the unity-poc pipeline (steps 4–5), run as an isolated agent — check the build environment then headlessly create the code-driven Unity project. Verifies Unity 6000.x + WebGL module, Vercel CLI, Node, and Vertex/Meshy creds, then creates the project and copies the 2D (templates/fighter2d/) or 3D (templates/arena3d/) fighter framework plus com.unity.ugui (+ glTFast for real 3D models). Spawned by the unity-poc orchestrator after the spec phase; returns the project path (or an env-missing report). Non-interactive.
 tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -32,16 +32,16 @@ Create a Unity project headlessly, copy the framework, add `com.unity.ugui` to
 UNITY=/Applications/Unity/Hub/Editor/6000.4.0f1/Unity.app/Contents/MacOS/Unity
 "$UNITY" -batchmode -quit -createProject <projectPath> -logFile -
 # 2D fighter:
-cp -R $POC/template/Assets/Scripts $POC/template/Assets/Editor $POC/template/Assets/link.xml <projectPath>/Assets/
+cp -R $POC/templates/fighter2d/Assets/Scripts $POC/templates/fighter2d/Assets/Editor $POC/templates/fighter2d/Assets/link.xml <projectPath>/Assets/
 # ensure "com.unity.ugui": "2.0.0" is in Packages/manifest.json (minimal templates omit it)
 ```
 
-**3D brawler** copies `template3d/` instead, and adds glTFast so `ModelLoader` can load real
+**3D brawler** copies `templates/arena3d/` instead, and adds glTFast so `ModelLoader` can load real
 GLBs. glTFast is **optional**: the `HAS_GLTFAST` define gates every glTFast call, so a project
 without the package still compiles (primitive-only) and never hard-fails:
 
 ```bash
-cp -R $POC/template3d/Assets/Scripts $POC/template3d/Assets/Editor $POC/template3d/Assets/link.xml <projectPath>/Assets/
+cp -R $POC/templates/arena3d/Assets/Scripts $POC/templates/arena3d/Assets/Editor $POC/templates/arena3d/Assets/link.xml <projectPath>/Assets/
 # add the package (enables real models):
 #   "com.unity.cloud.gltfast": "6.10.1" in Packages/manifest.json (alongside com.unity.ugui)
 # then turn on the glTFast code path by writing the define ONLY when the package is present:
