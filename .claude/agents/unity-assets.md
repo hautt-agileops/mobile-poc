@@ -1,6 +1,6 @@
 ---
 name: unity-assets
-description: Phase 3 of the unity-poc pipeline (step 6), run as an isolated agent — generate the real game art from the manifest. Turns assets.manifest.json into 2D PNG sprites via game-asset-gen (Vertex AI Nano Banana 2) into Assets/Resources/Art + the REQUIRED alpha_key.py pass, and models.manifest.json into 3D GLB models via gen-models.mjs → 3d-prompt (Meshy) into Assets/Resources/Models. Never a hard gate — missing art degrades to flat-color / primitive. Spawned by the unity-poc orchestrator after scaffold; isolates the long gen logs. Non-interactive.
+description: Phase 3 of the unity-poc pipeline (step 6), run as an isolated agent — generate the real game art from the manifest. Turns the character roster in sprites.manifest.json into 2D sprites via game-asset-gen's gen-sprites.mjs (Vertex base image + vendored sprite-gen rows, real alpha, no keyer), scenery/UI/FX in assets.manifest.json into PNGs via gen-assets.mjs (Vertex AI Nano Banana 2) + the REQUIRED alpha_key.py pass, and models.manifest.json into 3D GLB models via gen-models.mjs → 3d-prompt (Meshy) into Assets/Resources/Models. All write Assets/Resources/Art or Models. Never a hard gate — missing art degrades to flat-color / primitive. Spawned by the unity-poc orchestrator after scaffold; isolates the long gen logs. Non-interactive.
 tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -16,8 +16,34 @@ absolute first). Full landmine list: `.claude/skills/unity-poc/references/gotcha
 
 ## 6. Generate the assets (2D)
 
-Turns the spec-phase `assets.manifest.json` into real PNGs via Vertex AI Nano Banana 2
-(`gemini-3.1-flash-image`) written into `Assets/Resources/Art/<id>.png`:
+Two writers, ONE `Assets/Resources/Art/` namespace. Run **6a for the character roster**
+(if the spec wrote `sprites.manifest.json`) and **6b for everything else**. Order doesn't
+matter; ids never collide (roster ids are `<char>_<state>`, scenery/UI ids are their own).
+
+### 6a. Character sprites → `gen-sprites.mjs` (if `sprites.manifest.json` exists)
+
+The roster comes from `sprites.manifest.json` (a `characters[]` contract): one Vertex base
+image per character + one wide call per animation state, sliced into per-frame alpha PNGs by
+the vendored sprite-gen pipeline. Cheaper (~7 calls/char vs ~17) and **real alpha — NO
+`alpha_key.py` pass** for these.
+
+```bash
+test -f <projectPath>/sprites.manifest.json && {
+  node "$GEN/gen-sprites.mjs" <projectPath>/sprites.manifest.json -d      # dry-run: base prompt + states
+  cd <projectPath> && node "$GEN/gen-sprites.mjs" sprites.manifest.json   # generate
+}
+```
+
+Writes `<char>_<state>_<n>.png` + `<char>.png` — matches `SpriteLoader.GetFrames("<char>_<state>", frames)`
+the gameplay phase drives. Needs **python3 + Pillow** (vendored sprite-gen). Idempotent
+(skips a character whose `<id>_idle_0.png` exists; `-F` forces). A shortfall (`attack: 3/4
+padded`) is non-fatal — it padded a dropped empty frame; `--keep-run --curate` to inspect.
+**Never a hard gate** — a failed character degrades to `PrimitiveArt` flat-color per missing id.
+
+### 6b. Scenery / UI / FX → `gen-assets.mjs` (`assets.manifest.json`)
+
+Stages, tiles, backgrounds, UI, FX, concept boards via Vertex AI Nano Banana 2
+(`gemini-3.1-flash-image`) into `Assets/Resources/Art/<id>.png`:
 
 ```bash
 node "$GEN/gen-assets.mjs" <projectPath>/assets.manifest.json -d        # dry-run prompts
@@ -25,11 +51,16 @@ cd <projectPath> && node "$GEN/gen-assets.mjs" assets.manifest.json     # genera
 python3 "$GEN/alpha_key.py" -d Assets/Resources/Art --skip bg_cafe,concept_keyart
 ```
 
-**The keyer step is REQUIRED for `transparent` sprites** — nano-banana paints a fake
-checkerboard instead of real alpha, so unkeyed cut-outs show grey boxes in-engine.
-Idempotent (skips existing PNGs; re-run to fill failures). If no Vertex credential is
-available, skip — `SpriteLoader` falls back to `PrimitiveArt` flat-color per missing id, so
-the build still runs.
+**The keyer step is REQUIRED for `transparent` sprites here** — nano-banana paints a fake
+checkerboard instead of real alpha, so unkeyed cut-outs show grey boxes in-engine. (6a
+sprites already have real alpha from chroma-key — don't re-key them; `alpha_key.py` is
+idempotent but the `--skip` list is for full-scene `bg`/`concept` only.) Idempotent (skips
+existing PNGs; re-run to fill failures). If no Vertex credential is available, skip —
+`SpriteLoader` falls back to `PrimitiveArt` flat-color per missing id, so the build still runs.
+
+**Legacy:** a spec that put characters as per-state entries in `assets.manifest.json`
+(`type:"spritesheet"` + `ref`-to-idle) still works via 6b alone — 6a is the newer, cheaper
+roster path. Don't gen the same character through both.
 
 ## 6b. 3D models
 

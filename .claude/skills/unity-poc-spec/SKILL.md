@@ -22,7 +22,7 @@ a default per question.
 
 | brief | template | namespace | assets |
 |-------|----------|-----------|--------|
-| **2D fighter / arcade** | `templates/fighter2d/` | `Fighter` | 2D PNG sprites (`assets.manifest.json`) |
+| **2D fighter / arcade** | `templates/fighter2d/` | `Fighter` | roster → `sprites.manifest.json`; scenery/UI/FX → `assets.manifest.json` |
 | **3D arena brawler** | `templates/arena3d/` | `Fighter3D` | Meshy GLB models (`models.manifest.json`) |
 | **platformer / cozy / other** | — | your own | write from scratch |
 
@@ -104,9 +104,15 @@ state its own manifest entry:
 
 Name states with a stable convention `<char>_<state>` — that stem IS the folder-analogue
 (`alien_walking_idle`, `alien_walking_walk`, `alien_walking_attack`). The state list here
-must match the frame data the gameplay phase drives and the `SpriteLoader.Get` keys it asks
-for. Idle carries the design; every other state sets `ref` to the idle so the character
-stays on-model across the set.
+must match the frame data the gameplay phase drives and the `SpriteLoader.GetFrames` keys it
+asks for.
+
+**Where this lands:** for a fighter roster, each character's state list becomes ONE
+`characters[]` entry in **`sprites.manifest.json`** — the states go in its `states` map
+(`{frames, fps, loop, action}` per state), and the character's `base` prompt is the idle
+anchor that holds identity across the whole set (no per-state `ref` needed; `gen-sprites.mjs`
+anchors on the base image). This decomposition IS the `states` map. Only fall back to
+per-state `assets.manifest.json` entries with `ref`-to-idle for a non-fighter one-off.
 
 **Environments** get the same treatment — enumerate each one separately (background /
 backdrop layers, tiles, props), like the pack's `Environments/` split (per-scene folders).
@@ -119,13 +125,28 @@ List parallax layers as distinct `bg` entries when the stage scrolls.
   set on each entry's `category`) with that entity's animation states listed together —
   mirrors the per-character folder layout above so a reader sees each actor's full state set
   at a glance.
-- **`assets.manifest.json`** (machine): the contract the asset generator reads — one entry
-  per asset with a stable Unity-friendly `id` (becomes the PNG filename AND the runtime
-  lookup key), `type`, `prompt`, `background`, optional `frames`/`ref`. The global `style`
-  string is prepended to every prompt so the set stays coherent. Schema + example: the
-  **`game-asset-gen`** skill's `references/manifest-schema.md`.
-- Every `id` here must match the sprite id the gameplay-phase code asks `SpriteLoader.Get`
-  for — the manifest, the generated PNGs, and the C# are one namespace.
+- **Two manifests for a 2D fighter — split the roster from the scenery:**
+  - **`sprites.manifest.json`** (machine): the **character roster**. A `characters[]`
+    contract that `gen-sprites.mjs` reads — one entry per fighter with `id`, `identity`
+    (canonical design, restated every frame), `base` (the single base-idle prompt = identity
+    anchor), and a `states` map (`idle`/`walk`/`attack`/… → `{frames, fps, loop, action}`).
+    Omit `states` to accept the default fighter set (`idle`4·`walk`4·`attack`4·`hurt`2·
+    `block`1·`ko`2). One base image + one wide call per state → per-frame alpha PNGs
+    `<id>_<state>_<n>.png` (+ `<id>.png`). Cheaper + more on-model than per-frame spritesheets,
+    and real alpha (no keyer). Full schema: the **`game-asset-gen`** skill's SKILL.md
+    (*Character sprites — `gen-sprites.mjs`*).
+  - **`assets.manifest.json`** (machine): **everything non-character** — stages/backgrounds,
+    tiles, UI (health bar, timer, portraits, buttons, logo), FX, concept boards. One entry
+    per asset with a stable Unity-friendly `id`, `type`, `prompt`, `background`, optional
+    `frames`/`ref`. The global `style` prepends to every prompt. Schema + example: the
+    `game-asset-gen` skill's `references/manifest-schema.md`.
+  - Keep `style` consistent across BOTH so the roster and the stage read as one game.
+  - (A non-fighter or one-off can still put a character straight in `assets.manifest.json`
+    as a `spritesheet` with `ref`-to-idle — the older path. Don't gen a character through both.)
+- Every id is one namespace with the gameplay code: a roster state loads via
+  `SpriteLoader.GetFrames("<char>_<state>", frames)` (so manifest state keys == PNG stems ==
+  the C# `GetFrames` id), and a scenery/UI asset via `SpriteLoader.Get("<id>")`. The manifest,
+  the generated PNGs, and the C# must match exactly.
 - **3D brawler:** also (or instead) write **`models.manifest.json`** — a `style` string + a
   `models: [{id, prompt}]` list, one entry per 3D character. `id` == `CharacterDef3D.modelId`
   == `Assets/Resources/Models/<id>.bytes` (one namespace, like the 2D ids). UI sprites

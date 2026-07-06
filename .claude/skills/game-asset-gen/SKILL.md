@@ -20,6 +20,9 @@ env / 1Password), so the same Vertex service account works here.
 - The `unity-poc` workflow reaches the asset step: it writes `ASSETS.md` +
   `assets.manifest.json`, then calls this skill to fill `Assets/Resources/Art/`.
 - Standalone: any pipeline with an `assets.manifest.json` can call `gen-assets.mjs`.
+- The **character roster** (animated fighters) is cheaper + more consistent via
+  `gen-sprites.mjs` (Vertex base image + vendored sprite-gen rows) — see
+  *Character sprites* below. `gen-assets.mjs` still covers stages / UI / FX / concept.
 
 ## Workflow
 
@@ -129,6 +132,76 @@ env / 1Password), so the same Vertex service account works here.
   never breaks on a missing asset; it just degrades to programmer art for that one.
 - **Spritesheets:** `frames > 1` writes `<id>_0.png … <id>_N.png`, generated in one
   multi-turn so the frames stay on-model. `SpriteLoader.GetFrames(id, n)` loads them.
+
+## Character sprites — `gen-sprites.mjs` (Vertex base + sprite-gen rows)
+
+A second, cheaper path **for animated characters only** (the roster). Instead of one
+Vertex call per frame (`gen-assets.mjs` spritesheet), it generates ONE base idle image,
+then ONE wide call per animation state (all frames of that state in a single magenta
+strip), and slices the strip into clean per-frame alpha PNGs with the vendored
+[`aldegad/sprite-gen`](https://github.com/aldegad/sprite-gen) pipeline (`vendor/sprite-gen/`,
+Apache-2.0, Python + Pillow). ~7 calls/character (1 base + 6 state rows) vs ~17 per-frame,
+stronger identity lock (base anchor + per-state layout guides), and **real alpha from
+chroma-key so `alpha_key.py` is NOT needed** for these sprites.
+
+Use it for the **character roster**; keep `gen-assets.mjs` for stages / tiles / UI / FX /
+concept boards (non-character). The two write the same `Assets/Resources/Art/` namespace.
+
+**`sprites.manifest.json`** (the contract `gen-sprites.mjs` reads):
+```json
+{
+  "outDir": "Assets/Resources/Art",
+  "style": "global art style, prepended to every prompt",
+  "chroma": "#FF00FF",
+  "cellSize": 256,
+  "characters": [
+    {
+      "id": "vyre",
+      "description": "crimson blade duelist",
+      "identity": "canonical design restated so every frame stays on-model",
+      "base": "prompt for the single base idle image (the identity anchor)",
+      "states": {
+        "idle":   { "frames": 4, "fps": 4,  "loop": true,  "action": "gentle breathing idle" },
+        "walk":   { "frames": 4, "fps": 8,  "loop": true,  "action": "side-on walk cycle" },
+        "attack": { "frames": 4, "fps": 10, "loop": false, "action": "windup, strike, impact, recovery" }
+      }
+    }
+  ]
+}
+```
+- **`states` is optional** — omit it and each character gets the default fighter set:
+  `idle`4 · `walk`4 · `attack`4 · `hurt`2 · `block`1 · `ko`2 (~17 frames).
+- Output: **`<id>_<state>_<n>.png`** per frame + **`<id>.png`** (idle frame 0, the default
+  sprite). The gameplay phase loads a state with `SpriteLoader.GetFrames("<id>_<state>", frames)`
+  — so the manifest state keys, the PNG stems, and the C# `GetFrames` id are one namespace.
+- **Chroma:** default magenta `#FF00FF` works even for red/crimson characters (slicing is
+  forced-even, not color-segmented). Only switch to green `#00FF00` if a character's own
+  palette is heavily magenta/pink.
+
+**Run:**
+```bash
+node gen-sprites.mjs <project>/sprites.manifest.json -d      # dry run: base prompt + states + aspect
+cd <project> && node <skill>/gen-sprites.mjs sprites.manifest.json   # generate (idempotent; skips existing <id>_idle_0.png)
+node gen-sprites.mjs sprites.manifest.json -i vyre           # one character
+node gen-sprites.mjs sprites.manifest.json --curate          # print the sprite-gen webview command per char
+```
+
+**How it works (per character):** Vertex gens `_base.png` → `prepare_sprite_run.py` writes
+per-state prompts + even 4:1 layout guides → ONE Vertex call per state fills `raw/<state>.png`
+(widest aspect ≤ 21:9, magenta bg) → **`slot_extract.py`** chroma-keys + force-even-slot
+slices into `frames/<state>/frame-N.png` → renamed into `Art/`. Needs **python3 + Pillow**.
+
+### `slot_extract.py` — why forced-slot slicing (KEY gotcha)
+
+sprite-gen's own `extract_sprite_row_frames.py` groups pixels into frames by **connected
+component**. A fighter's prop bridges slots — a katana held low crosses into the neighbor
+slot → all poses fuse into ONE component → a degenerate split → empty frames (its
+`--allow-slot-fallback` only fires on ZERO components, not a bad split). Our strips are
+**always evenly laid out on the layout guide**, so `slot_extract.py` (SKILL-local, imports
+the vendored keyer/fit/inspect verbatim) forces even-slot slicing — correct and robust
+against weapon merge. `gen-sprites.mjs` calls it, NOT the component extractor. This bug was
+invisible to static-frame checks — only **rendering the montage** exposed it, so render-test
+sprite output (compose a per-state contact sheet) before trusting a run.
 
 ## Provider / model defaults
 

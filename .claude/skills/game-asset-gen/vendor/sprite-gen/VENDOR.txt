@@ -1,0 +1,4 @@
+vendored from https://github.com/aldegad/sprite-gen
+commit: 08295342a04f2659d2651bd7750142bf42ec6a63
+vendored: 2026-07-04
+license: Apache-2.0 (see LICENSE, NOTICE)

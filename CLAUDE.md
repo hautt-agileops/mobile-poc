@@ -119,12 +119,21 @@ Flags: `-n` no-refine, `-i` reference image (local path or https URL), `-f` form
 
 Shared asset layer for the unity-poc pipeline (and any manifest-driven pipeline). Worker-less,
 zero npm deps (Node 18+). **Reuses `3d-prompt`'s credential resolution verbatim** (`sa.json` /
-`GOOGLE_*` / 1Password) — same Vertex SA. Owns three scripts + a Python alpha pass:
+`GOOGLE_*` / 1Password) — same Vertex SA. Owns four scripts + a Python alpha pass + a vendored
+sprite pipeline:
 
 - **`gen-assets.mjs`** — `assets.manifest.json` → 2D PNG sprites/tiles/UI/FX via Vertex AI
   nano-banana (`gemini-3.1-flash-image`). Writes straight into `Assets/Resources/Art/`. Detects
   animation intent → spritesheets vs single sprites.
   `node gen-assets.mjs <manifest> [-o dir] [-i idsubstr] [-F force] [-d dry]`
+- **`gen-sprites.mjs`** — `sprites.manifest.json` (`characters[]`) → animated **character
+  roster**. One Vertex base idle image per character + ONE wide call per animation state,
+  sliced into per-frame alpha PNGs (`<id>_<state>_<n>.png` + `<id>.png`) by the vendored
+  `sprite-gen` pipeline. ~7 calls/char vs ~17 per-frame, stronger identity lock, **real alpha
+  (no `alpha_key.py`)**. Needs python3 + Pillow. Uses SKILL-local **`slot_extract.py`** (forced
+  even-slot slicing) NOT sprite-gen's connected-component extractor — a fighter's weapon bridges
+  slots and fuses poses into one blob. `vendor/sprite-gen/` = aldegad/sprite-gen (Apache-2.0).
+  Roster → this; stages/UI/FX → `gen-assets.mjs`. `node gen-sprites.mjs <manifest> [-i id] [-F] [-d] [--curate]`
 - **`gen-models.mjs`** — `models.manifest.json` → 3D GLBs by **delegating to `3d-prompt/pipeline.mjs`**
   (Gemini views → Meshy). Writes `Assets/Resources/Models/<id>.bytes` (`.bytes` REQUIRED — Unity
   only ships known extensions via `Resources.Load`; `ModelLoader`+glTFast reads at runtime).
@@ -154,9 +163,9 @@ Worker-less: game brief → design docs → code-driven Unity project → WebGL 
 
 | phase | kind | name | steps | output |
 |-------|------|------|-------|--------|
-| Spec | skill | `unity-poc-spec` | 1–3 | `PRD.md` → `TDD.md` → `ASSETS.md` / `assets.manifest.json` / `models.manifest.json` |
+| Spec | skill | `unity-poc-spec` | 1–3 | `PRD.md` → `TDD.md` → `ASSETS.md` / `sprites.manifest.json` (roster) / `assets.manifest.json` / `models.manifest.json` |
 | Scaffold | agent | `unity-scaffold` | 4–5 | Unity project created headlessly; `templates/fighter2d/` or `templates/arena3d/` copied |
-| Assets | agent | `unity-assets` | 6 | PNGs → `Resources/Art/` (2D); GLBs → `Resources/Models/` (3D). Never a hard gate — missing art falls back to flat color / primitive capsule |
+| Assets | agent | `unity-assets` | 6 | roster → `Resources/Art/` via `gen-sprites.mjs` (real alpha, no keyer); scenery/UI/FX via `gen-assets.mjs` + `alpha_key.py`; GLBs → `Resources/Models/` (3D). Never a hard gate — missing art falls back to flat color / primitive capsule |
 | Gameplay | skill | `unity-poc-gameplay` | 7 | `Assets/Scripts/Game/` authored; `BuildRoster()` exposed |
 | Build+Ship | agent | `unity-buildship` | 8–13 | Headless playtest gate → WebGL build → local puppeteer boot test → `deploy-vercel.sh` → `HANDOFF.md` |
 
@@ -169,7 +178,7 @@ standalone/3d-model publishes from the main loop.
 
 | brief | template | namespace | assets |
 |-------|----------|-----------|--------|
-| 2D fighter / arcade | `templates/fighter2d/` | `Fighter` | 2D PNG sprites (`game-asset-gen`) |
+| 2D fighter / arcade | `templates/fighter2d/` | `Fighter` | roster sprites (`gen-sprites.mjs`) + scenery/UI (`gen-assets.mjs`) |
 | 3D arena brawler | `templates/arena3d/` | `Fighter3D` | Meshy GLB models (`gen-models.mjs` → glTFast) |
 | platformer / cozy / other | — | your own | write from scratch; reuse pipeline + scripts only |
 

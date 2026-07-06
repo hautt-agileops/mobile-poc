@@ -1,5 +1,32 @@
 [
   {
+    "id": "arrow-clash-arena",
+    "title": "Arrow Clash Arena — Solo Range",
+    "url": "https://arrow-clash-arena.vercel.app",
+    "thumb": "arrow-clash-arena.png",
+    "engine": "Unity WebGL",
+    "created": "2026-07-06",
+    "description": "Precision archery scoring range: loose arrows, hit weak spots, chain combos"
+  },
+  {
+    "id": "spades-jjdd",
+    "title": "Spades JJDD",
+    "url": "https://spades-jjdd.vercel.app",
+    "thumb": "spades-jjdd.png",
+    "engine": "Unity WebGL",
+    "created": "2026-07-06",
+    "description": "Pixel-art Spades card game (JJDD partnership rules)"
+  },
+  {
+    "id": "frontline-runner",
+    "title": "Frontline Runner",
+    "url": "https://runner-shooter-puce.vercel.app",
+    "thumb": "frontline-runner.png",
+    "engine": "Three.js WebGL",
+    "created": "2026-07-06",
+    "description": "Last War-style squad runner-shooter. Drag to steer, the squad auto-fires; barrels add soldiers, gates ×/+ the count, enemies swarm with boids separation. 3 levels, each ending in a boss. Formula-driven spawns, object pooling, real 3D models."
+  },
+  {
     "id": "blood-bloom-arena",
     "title": "Blood Bloom Arena",
     "url": "https://blood-bloom-arena.vercel.app",
