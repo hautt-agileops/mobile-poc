@@ -101,6 +101,19 @@ env / 1Password), so the same Vertex service account works here.
    already have alpha are left alone. Needs Pillow. Verify with
    `sips -g hasAlpha <file>.png`.
 
+   **EXCEPTION — full-frame glow FX (sparks, bursts, explosions, trails, muzzle flashes)
+   must NOT use `alpha_key.py`.** The border flood cannot cross the two-tone checkerboard
+   (dark checker cells fail the brightness floor and wall off the fill), leaving an opaque
+   checker box in-game; and a frame-filling effect has no clean border to flood from.
+   Instead: generate those ids on a **solid black** background (`background:"scene"` + a
+   prompt hammering "PURE SOLID BLACK background, NO characters, just the effect"), then
+   key with the bundled luminance keyer — black → transparent, glow → opaque:
+   ```bash
+   python3 <skill>/fx_luma_key.py <artDir> fx_hit_spark fx_explosion …
+   ```
+   Split rule: `alpha_key.py` for solid subjects with an outline (characters/props/UI);
+   `fx_luma_key.py` for glow FX gen'd on black.
+
 5. **Hand back to Unity.** PNGs now sit in `Assets/Resources/Art/<id>.png`. The
    unity-poc framework's `SpriteLoader.cs` loads them at runtime by id and falls
    back to `PrimitiveArt` flat-color for any id that didn't generate — so a partial

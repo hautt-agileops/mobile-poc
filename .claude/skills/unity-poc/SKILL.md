@@ -115,7 +115,14 @@ Load skills into the main loop; spawn agents via the Task tool (pass the project
    REQUIRED local puppeteer boot test → Vercel deploy (`deploy-vercel.sh`) + portal
    registration → verify public → `HANDOFF.md`. Two hard gates guard the deploy. It runs
    `deploy-vercel.sh` directly (a subagent can't spawn the `portal-deploy` agent), returning
-   the verified public URL.
+   the verified public URL — plus gameplay screenshot paths when the project ships a
+   `gameplay-shots` config (step 10b).
+6. **Visual review (orchestrator, in the main loop)** — Read the gameplay screenshots the
+   buildship agent returns and LOOK at them: broken alpha (checker boxes), invisible or
+   default-font UI, floating/mis-scaled sprites, dead scenes. The boot test proves it runs;
+   only this catches it looking wrong (a checkerboarded reticle and specks-for-targets both
+   shipped past boot tests). Findings loop back to `unity-poc-gameplay` (code/presentation)
+   or `unity-assets` (regen) before calling the ship done.
 
 Both dimensions converge after asset gen onto the same gates. Asset gen is **never** a gate.
 On a gate failure the agent returns the failure — drop back to the `unity-poc-gameplay` skill

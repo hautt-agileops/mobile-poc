@@ -196,6 +196,7 @@ entry methods + `BuildRoster()` reflection contract in
 - **glTFast is optional** — real 3D models need BOTH `com.unity.cloud.gltfast` package AND `Assets/csc.rsp` with `-define:HAS_GLTFAST`. Add the define only when the package is present.
 - **`*.sh` scripts default to `Fighter.*`** — 3D builds must set `BUILD_METHOD`/`PLAYTEST_METHOD=Fighter3D.*`.
 - Two hard gates: **playtest** (aborts build on fail) and **local puppeteer browser test** (aborts deploy on fail). Both fail back to `unity-poc-gameplay`.
+- One soft gate: **visual review** — buildship runs `gameplay-shots.mjs` (real play inputs → frames) and the orchestrator vision-reviews them before calling the ship done; boot-passing builds have shipped checkerboarded FX and invisible UI. Glow FX/UI: gen on black + `fx_luma_key.py`, never `alpha_key.py` (its flood can't cross the fake checkerboard).
 
 ### Output location
 

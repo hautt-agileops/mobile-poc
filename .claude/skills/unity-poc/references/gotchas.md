@@ -75,3 +75,28 @@ register (spec phase) should pre-empt every one of these.
   try/catch and only **log** — a miss never fails the test (the FAIL gate is fatal console
   errors / page errors). For a different UI layout, retune the coords or ignore the after-start
   screenshot; the boot-fault detection still works regardless.
+
+## Presentation & visual review (all phases — the "why does it look ugly" landmines)
+
+- **Full-frame glow FX + `alpha_key.py` = opaque checker box in-game.** nano-banana's fake
+  checkerboard blocks the border flood (dark cells fail the brightness floor). Gen glow FX
+  and glow UI (reticles, highlight rings) on **solid black** and key with
+  `game-asset-gen/fx_luma_key.py` (alpha = luminance). Flood keyer is for outlined solid
+  subjects only. A checkerboarded RETICLE shipped past the boot test — only a gameplay
+  screenshot caught it.
+- **uGUI `Image.type = Sliced` degenerates to INVISIBLE when the 9-slice borders exceed the
+  rect** (e.g. 90px borders on an 80px-tall button renders nothing, silently). Use
+  `Image.Type.Simple` for generated plates/frames; text children still render, so the bug
+  looks like "text but no plate".
+- **Physical-attraction GDD sizes are wall-scale, not screen-scale.** Real-cm target sizes
+  (30-45cm on a 4m wall) read as specks in a 1280px canvas. Apply one uniform `DEMO_SCALE`
+  to the whole target anatomy — radii AND zone offsets together, so hit zones and visuals
+  never desync — and derive playtest click points from the factory anatomy, not hardcoded cm.
+- **Boot test ≠ looks right.** It proves the wasm boots; menu-only screenshots have shipped
+  broken FX, invisible buttons and mis-scaled sprites. Ship a `gameplay-shots` config from
+  the gameplay phase, have buildship run `scripts/gameplay-shots.mjs` (step 10b), and
+  vision-review the frames in the main loop before calling it done.
+- **Presentation floor for generated art** (all code, no extra gen): drop-shadow ellipse
+  under actors, vignette + warm wash overlay, bundled OFL font, spawn-pop/breathe/hit-squash
+  tweens, camera shake + hitstop, projectile flight, procedural SFX. Without these even
+  good sprites read as a dead collage — checklist lives in `unity-poc-gameplay`.

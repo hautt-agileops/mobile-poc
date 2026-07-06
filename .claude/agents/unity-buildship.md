@@ -59,6 +59,15 @@ boot-time faults (stripped classes, missing EventSystem) a static curl misses. F
 single-shot headless Chrome if puppeteer-core isn't installed (`cd $SC && npm i`).
 `deploy-vercel.sh` runs this automatically and aborts the deploy on failure.
 
+**10b. Gameplay screenshots for visual review (capture, don't judge).** The boot test proves
+it RUNS; it says nothing about how it LOOKS (menu-only screenshots have shipped broken FX
+before). Run the shared `scripts/gameplay-shots.mjs` (copied at scaffold) against the local
+server — it drives a real run (start button → several play inputs → menu/early/mid-fight
+frames). Coords are game-specific: pass the project's `gameplay-shots.json` config if the
+gameplay phase authored one (`node scripts/gameplay-shots.mjs <url> <prefix> gameplay-shots.json`);
+defaults fit a center start button. Return the PNG paths in your summary so the orchestrator
+can vision-review them. Capture failure = warn, not a gate.
+
 ## 11. Deploy to Vercel (run the script directly)
 
 ```bash

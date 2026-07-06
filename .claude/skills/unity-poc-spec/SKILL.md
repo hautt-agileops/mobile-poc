@@ -84,6 +84,17 @@ In the project root, before scaffolding — design first so the build hits minim
 
 ## 3. Write `ASSETS.md` then `assets.manifest.json`
 
+**Art-bible first (coherence gate).** Before enumerating assets, put ONE `concept`/key-art
+entry at the head of the manifest and generate it FIRST (or as its own 1-asset manifest);
+show it to the user with `AskUserQuestion` and iterate until approved. Then: (a) every
+other asset gets `ref: "<keyart_id>"` (or refs a character idle that itself refs the key
+art) so the whole set inherits one palette/line-weight/render style — per-character refs
+alone are not enough; cross-asset drift is what makes AI sets read as a collage; (b)
+extract 4–6 explicit hex colors from the approved key art into the global `style` string;
+(c) state the camera/perspective ("straight-on side view, eye level") in `style` so bg and
+sprites agree. Model fallback (throttle → older image model) is a style-drift source —
+prefer regenerating a drifted asset over shipping a mixed-model set.
+
 The asset analysis. Read the PRD's content spec and TDD's render plan and enumerate **every
 2D visual the prototype draws**: each character (idle + each signature action / animation
 frame), each stage/background, platform & tile, UI element (health bar, timer, select

@@ -58,6 +58,13 @@ idempotent but the `--skip` list is for full-scene `bg`/`concept` only.) Idempot
 existing PNGs; re-run to fill failures). If no Vertex credential is available, skip —
 `SpriteLoader` falls back to `PrimitiveArt` flat-color per missing id, so the build still runs.
 
+**EXCEPTION — full-frame glow FX (`fx_*` sparks/bursts/explosions/trails/muzzle) must NOT
+go through `alpha_key.py`:** its border flood can't cross the two-tone checker (dark cells
+wall the fill) → opaque checker box in-game. Gen those ids on a **solid black** background
+(`background:"scene"`, prompt: "PURE SOLID BLACK background, NO characters, just the
+effect"), then `python3 "$GEN/fx_luma_key.py" Assets/Resources/Art fx_id1 fx_id2 …`
+(alpha = luminance: black→transparent, glow→opaque).
+
 **Legacy:** a spec that put characters as per-state entries in `assets.manifest.json`
 (`type:"spritesheet"` + `ref`-to-idle) still works via 6b alone — 6a is the newer, cheaper
 roster path. Don't gen the same character through both.

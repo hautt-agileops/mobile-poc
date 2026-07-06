@@ -79,6 +79,33 @@ with the 2D fighter (same shapes: `GameBootstrap3D`, `Fighter3D`, `CombatSystem3
 - **`Editor/BuildScript3D.cs`** — `Fighter3D.EditorTools.BuildScript.BuildWebGL` / `.RunPlaytest`;
   same reflection-based roster discovery (`List<CharacterDef3D> BuildRoster()`).
 
+## Presentation checklist (why POCs read "ugly" — cheap code-side fixes, do them by default)
+
+Individually-fine generated sprites still read as a collage without these. All are runtime
+code, no extra art (worked example: arrow-clash-arena):
+
+- **Drop shadow** — procedural soft ellipse sprite under every actor. Grounds sprites;
+  without it everything reads as floating cutouts. Biggest single win.
+- **Fullscreen grade** — procedural corner vignette + a ~5%-alpha warm wash on the overlay
+  canvas (`raycastTarget=false`). Unifies mismatched generated art.
+- **Real display font** — bundle an OFL TTF under `Assets/Resources/Fonts/` and load it in
+  the UI helper (`Resources.Load<Font>`); the default engine font screams prototype.
+- **Alive feel in code, not gen frames** — spawn-pop scale-in, idle breathe/bob (sin), hit
+  squash+stretch + white flash tint. Generated animation frames jitter; code tweens don't.
+- **Juice** — camera shake, hitstop + brief slow-mo on crits, projectile flight (don't
+  teleport results), floating score popups, procedural SFX (synthesize AudioClips, no files).
+- **Screen-medium scale** — a GDD written for a physical wall (attraction briefs) sizes
+  targets in real cm; at 1:1 they're specks on a laptop. Apply one uniform `DEMO_SCALE` to
+  the whole anatomy (radii + zone offsets together, so visuals and hit-tests stay locked).
+- **uGUI skinning** — `Image.type = Simple` for generated plates/frames; **Sliced
+  degenerates to invisible when the 9-slice borders exceed the rect** (90px borders on an
+  80px button = nothing renders). Tint plates near-white; hue only hints state.
+
+**Also author `gameplay-shots.json` (+ optionally adapt `scripts/gameplay-shots.mjs`)** —
+the buildship phase (step 10b) drives a real run with it and returns frames for visual
+review. You know the game's click coords; encode start button + a few play inputs. Without
+it the review gate only sees the menu.
+
 ## Gotchas that bite here
 
 - **IL2CPP stripping kills runtime-created components → "Could not produce class with ID N"
