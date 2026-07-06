@@ -67,7 +67,13 @@ try {
   await page.screenshot({ path: `${PREFIX}.4-aiming.png` });
   await page.mouse.up();
 
-  console.log(`gameplay shots written: ${PREFIX}.{1-menu,2-earlyfight,3-midfight,4-aiming}.png`);
+  // phone-viewport sanity: portal links get opened on phones — catch unreadable HUD /
+  // letterboxing / clipped UI. Same running session, just a reflow (no reboot cost).
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await sleep(1200);
+  await page.screenshot({ path: `${PREFIX}.5-mobile.png` });
+
+  console.log(`gameplay shots written: ${PREFIX}.{1-menu,2-earlyfight,3-midfight,4-aiming,5-mobile}.png`);
 } finally {
   await browser.close();
 }

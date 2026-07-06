@@ -123,10 +123,23 @@ Load skills into the main loop; spawn agents via the Task tool (pass the project
    only this catches it looking wrong (a checkerboarded reticle and specks-for-targets both
    shipped past boot tests). Findings loop back to `unity-poc-gameplay` (code/presentation)
    or `unity-assets` (regen) before calling the ship done.
+7. **Quality grade (orchestrator)** — score the shipped slice against
+   `references/quality-rubric.md` (8 dimensions, 0–3, evidence per line) and append the
+   score block to `HANDOFF.md`. Name the single biggest gap + next lever. ≤11 or any 0 in
+   dims 1–4 = not shippable, loop back. Then hand the URL to the user with a **playtest ask**:
+   fun? clear? fair? the ONE change you'd make? — their answers seed the next iteration.
 
 Both dimensions converge after asset gen onto the same gates. Asset gen is **never** a gate.
 On a gate failure the agent returns the failure — drop back to the `unity-poc-gameplay` skill
 in the main loop to fix, then re-spawn `unity-buildship`.
+
+**Fun-first ordering (optional, prefer for novel mechanics):** the default order gens art
+before gameplay exists — fine for a known genre on a bundled framework, backwards for an
+unproven loop. When the brief's core mechanic is novel/risky, swap phases: gameplay first on
+flat-color fallbacks (`SpriteLoader` degrades by design), run the balance sim + a grey-box
+build through the visual gate, confirm the loop is fun-shaped, THEN spawn `unity-assets` and
+rebuild. Art is the most expensive thing to redo when the mechanic changes; fallback art is
+free. (This is also what every GDD's own "grey-box before final art" step asks for.)
 
 ## Shared assets (in this skill dir)
 

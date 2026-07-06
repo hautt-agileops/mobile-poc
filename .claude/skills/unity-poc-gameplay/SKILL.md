@@ -106,6 +106,32 @@ the buildship phase (step 10b) drives a real run with it and returns frames for 
 review. You know the game's click coords; encode start button + a few play inputs. Without
 it the review gate only sees the menu.
 
+## Balance sim — assert the game is FUN-shaped, not just correct
+
+The playtest gate's correctness asserts (hit resolution, scoring math) can all pass on a
+boring game. Add a **bot-session sim** to the same `Playtest.Run()`: run the pure-logic
+session loop headlessly with 2–3 scripted skill profiles (noob = random aim inside the
+field; casual = body-accurate; expert = weak-spot-accurate with the difficulty's timing) and
+assert the *shape* of the outcome, seeded and deterministic:
+
+- **Skill separates scores** — expert total ≥ ~2× noob (else precision doesn't pay → depth
+  rubric fails); casual strictly between.
+- **No dead time** — a target/decision is available ≥90% of session ticks.
+- **Fail state reachable** — the noob profile can actually lose (else no stakes); the
+  expert profile never loses to unavoidable damage (else unfair).
+- **Session math** — expected shots-per-session inside the design band (GDD pacing).
+
+Costs ~50 lines, catches "correct but flat" before anything is built or deployed.
+
+## Keep the model layer engine-free (seconds-fast iteration)
+
+Unity batchmode is 1–2 min per gate run. If the game model (targets, resolution, scoring,
+session state) avoids `UnityEngine` types — own `Vec2`/`MathF` instead of `Vector2`/`Mathf` —
+the model + `Playtest.cs` compile and run standalone on Unity's bundled Roslyn + .NET 8 in
+**seconds** (see the fast-playtest recipe in project memory / spades-jjdd). Balance-sim
+tuning loops especially profit. Rule of thumb: MonoBehaviours reference the model, never the
+reverse; view classes translate at the boundary.
+
 ## Gotchas that bite here
 
 - **IL2CPP stripping kills runtime-created components → "Could not produce class with ID N"

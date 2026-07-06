@@ -65,6 +65,27 @@ wall the fill) → opaque checker box in-game. Gen those ids on a **solid black*
 effect"), then `python3 "$GEN/fx_luma_key.py" Assets/Resources/Art fx_id1 fx_id2 …`
 (alpha = luminance: black→transparent, glow→opaque).
 
+**Final step — contact sheet for vision review.** Compose every generated PNG into one grid
+image and return its path so the orchestrator can vision-review the SET before anything is
+built — style drift (model fallback mid-run), stray content (a character painted into an FX
+prompt), broken alpha, and off-palette assets are all visible at a glance on a sheet and
+invisible in a file listing. One-liner (PIL, checkerboard-free — paste onto mid-grey):
+
+```bash
+python3 - <<'EOF'
+from PIL import Image; import glob, math
+fs = sorted(glob.glob("Assets/Resources/Art/*.png")); n=len(fs); cols=8
+cell=128; rows=math.ceil(n/cols); sheet=Image.new("RGB",(cols*cell,rows*cell),(96,96,96))
+for i,f in enumerate(fs):
+    im=Image.open(f).convert("RGBA"); im.thumbnail((cell-8,cell-8))
+    sheet.paste(im,((i%cols)*cell+4,(i//cols)*cell+4),im)
+sheet.save("_contact_sheet.png"); print(n,"assets -> _contact_sheet.png")
+EOF
+```
+
+Return `<projectPath>/_contact_sheet.png` in your summary. A drifted/broken asset found here
+costs one regen; found after the build it costs a full rebuild cycle.
+
 **Legacy:** a spec that put characters as per-state entries in `assets.manifest.json`
 (`type:"spritesheet"` + `ref`-to-idle) still works via 6b alone — 6a is the newer, cheaper
 roster path. Don't gen the same character through both.
