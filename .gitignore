@@ -50,6 +50,9 @@ unity/Assets/Art/
 # ── Portal viewer heavy binaries (deployed via Vercel, not tracked) ──
 .claude/skills/3d-prompt/viewer/assets/
 
+# ── Stray nested clone (separate project, own .git) ──
+/template/
+
 # ── unity-poc pipeline outputs ──
 unity/output/
 

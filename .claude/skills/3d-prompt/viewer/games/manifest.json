@@ -1,5 +1,14 @@
 [
   {
+    "id": "app-empire",
+    "title": "App Empire",
+    "url": "https://app-empire.vercel.app",
+    "thumb": "app-empire.png",
+    "engine": "Unity WebGL",
+    "created": "2026-07-07",
+    "description": "Idle startup tycoon — code, hire, boost, exit big"
+  },
+  {
     "id": "arrow-clash-arena",
     "title": "Arrow Clash Arena — Solo Range",
     "url": "https://arrow-clash-arena.vercel.app",

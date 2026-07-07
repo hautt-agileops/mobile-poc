@@ -121,8 +121,11 @@ Load skills into the main loop; spawn agents via the Task tool (pass the project
    buildship agent returns and LOOK at them: broken alpha (checker boxes), invisible or
    default-font UI, floating/mis-scaled sprites, dead scenes. The boot test proves it runs;
    only this catches it looking wrong (a checkerboarded reticle and specks-for-targets both
-   shipped past boot tests). Findings loop back to `unity-poc-gameplay` (code/presentation)
-   or `unity-assets` (regen) before calling the ship done.
+   shipped past boot tests). Then run the **UI/UX checklist** (`references/uiux-review.md`):
+   readability (surface contrast, state visibility, text floor), hierarchy, feedback, style
+   coherence — plus baseline regression vs the previous ship's shots (`_baseline/`). Any
+   readability FAIL blocks the ship. Findings loop back to `unity-poc-gameplay`
+   (code/presentation) or `unity-assets` (regen) before calling the ship done.
 7. **Quality grade (orchestrator)** — score the shipped slice against
    `references/quality-rubric.md` (8 dimensions, 0–3, evidence per line) and append the
    score block to `HANDOFF.md`. Name the single biggest gap + next lever. ≤11 or any 0 in

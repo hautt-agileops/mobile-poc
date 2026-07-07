@@ -68,10 +68,17 @@ try {
   await page.mouse.up();
 
   // phone-viewport sanity: portal links get opened on phones — catch unreadable HUD /
-  // letterboxing / clipped UI. Same running session, just a reflow (no reboot cost).
+  // letterboxing / clipped UI. Unity WebGL can re-splash on a viewport reflow, so give it
+  // a long settle and retry once if the frame comes back near-black (splash).
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-  await sleep(1200);
+  await sleep(5000);
   await page.screenshot({ path: `${PREFIX}.5-mobile.png` });
+  const { readFileSync: rf } = await import('fs');
+  // crude splash check: tiny file = mostly-flat dark frame
+  if (rf(`${PREFIX}.5-mobile.png`).length < 15000) {
+    await sleep(8000);
+    await page.screenshot({ path: `${PREFIX}.5-mobile.png` });
+  }
 
   console.log(`gameplay shots written: ${PREFIX}.{1-menu,2-earlyfight,3-midfight,4-aiming,5-mobile}.png`);
 } finally {

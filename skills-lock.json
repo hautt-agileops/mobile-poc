@@ -1,4 +1,23 @@
 {
   "version": 1,
-  "skills": {}
+  "skills": {
+    "UI/UX Design Review": {
+      "source": "rknall/claude-skills",
+      "sourceType": "github",
+      "skillPath": "ui-design-review/SKILL.md",
+      "computedHash": "beaa00cea0789727b08ab44955160c85a0c8001b656de8208b3fff5bb51a8159"
+    },
+    "ui-ux-reviewer": {
+      "source": "arjenschwarz/agentic-coding",
+      "sourceType": "github",
+      "skillPath": "claude/skills/ui-ux-reviewer/SKILL.md",
+      "computedHash": "4331fe443a8dbcda35d1c12175c640f66c67eb605842e85a4da20aeb9e525ea0"
+    },
+    "visual-regression-testing": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "skillPath": "skills/visual-regression-testing/SKILL.md",
+      "computedHash": "04be956290c28bf8c2a865399594ccd755407b0af1e8eb27c551725ca8f21299"
+    }
+  }
 }
