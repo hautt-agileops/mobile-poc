@@ -7,22 +7,27 @@ Everything spawns from C# at runtime (one empty boot scene, no hand-authored sce
 prefabs) so the whole pipeline runs headless. Ships **two** full fighter frameworks — a 2D
 fighter (`templates/fighter2d/`) and a 3D arena brawler (`templates/arena3d/`).
 
-> **`SKILL.md` is the contract** — a thin orchestrator. The 13-step pipeline is split into
-> five phases: two run **in the main loop as skills**, three as **isolated agents** the
-> orchestrator spawns (Task tool). In order:
+> **`SKILL.md` is the contract** — a thin orchestrator. The 13-step build pipeline is split
+> into **five phases** (two run **in the main loop as skills**, three as **isolated agents**
+> the orchestrator spawns via the Task tool), then **two orchestrator post-phases** run back in
+> the main loop after deploy. In order:
 > skill `unity-poc-spec` (1–3, PRD/TDD/manifest) → agent `unity-scaffold` (4–5, env + create) →
 > agent `unity-assets` (6, gen art) → skill `unity-poc-gameplay` (7, author `Game/`) →
-> agent `unity-buildship` (8–13, playtest/build/deploy/handoff). Split rule: interactive /
-> code-authoring stay skills; non-interactive execution with noisy logs become agents. Shared
-> assets (`templates/*/`, `scripts/`, `references/`) stay in **this** dir; skills reference them
-> by `../unity-poc/…`, agents (in `.claude/agents/`) by `.claude/skills/unity-poc/…`.
-> Full gotchas: `references/gotchas.md`. When docs disagree, the phase file wins; fix this one.
+> agent `unity-buildship` (8–13, playtest/build/deploy/handoff + gameplay screenshots) →
+> **orchestrator visual review** (LOOK at the shots + `references/uiux-review.md` checklist,
+> readability = hard gate) → **orchestrator quality grade** (`references/quality-rubric.md`,
+> score block onto `HANDOFF.md`). Split rule: interactive / code-authoring stay skills;
+> non-interactive execution with noisy logs become agents; the two review passes need your eyes
+> so they stay in the main loop. Shared assets (`templates/*/`, `scripts/`, `references/`) stay
+> in **this** dir; skills reference them by `../unity-poc/…`, agents (in `.claude/agents/`) by
+> `.claude/skills/unity-poc/…`. Full gotchas: `references/gotchas.md`. When docs disagree, the
+> phase file wins; fix this one.
 
 ## Flow chart
 
 Root `unity-poc` is a thin orchestrator; each dashed box is one phase — a **skill** loaded in
-the main loop (spec, gameplay) or an **agent** spawned via the Task tool (scaffold, assets,
-buildship). Steps numbered as in the pipeline.
+the main loop (spec, gameplay, the two review passes) or an **agent** spawned via the Task tool
+(scaffold, assets, buildship). Steps numbered as in the pipeline.
 
 ```mermaid
 flowchart TD
@@ -55,7 +60,14 @@ flowchart TD
       I{8. Playtest gate<br/>Fighter.* / Fighter3D.*}
       I -->|pass exit 0| J[9. Build WebGL headless<br/>BUILD_METHOD env picks 2D/3D]
       J --> K{10. Local test<br/>200s + puppeteer real boot}
-      K -->|pass| L[11. Deploy Vercel + portal] --> M[12. Verify public 200 + loader.js] --> N[13. HANDOFF.md]
+      K -->|pass| L[11. Deploy Vercel + portal] --> M[12. Verify public 200 + loader.js]
+      M --> N[13. HANDOFF.md<br/>+ 10b gameplay-shots screenshots]
+    end
+
+    subgraph S6[orchestrator · main loop · post-deploy]
+      P{Visual review<br/>LOOK at shots + uiux-review.md<br/>readability = hard gate}
+      P -->|pass| Q[Quality grade<br/>quality-rubric.md 8 dims<br/>score block → HANDOFF.md]
+      Q --> R([Public URL + playtest ask])
     end
 
     D2 --> E
@@ -69,20 +81,29 @@ flowchart TD
     H --> I
     I -->|fail| H
     K -->|fail| H
+    N --> P
+    P -->|readability FAIL / broken art| H
+    P -->|regen art| G2
+    Q -->|≤11 or 0 in dims 1-4| H
 
     style I fill:#ffe7b3,stroke:#cc9a00
     style K fill:#ffe7b3,stroke:#cc9a00
+    style P fill:#ffe7b3,stroke:#cc9a00
+    style Q fill:#ffe7b3,stroke:#cc9a00
     style Gf2 fill:#e7f0ff,stroke:#5588cc
     style Gf3 fill:#e7f0ff,stroke:#5588cc
 ```
 
-Five phases (2 skills + 3 agents), run in order; shared assets (`templates/*/`, `scripts/`,
-`references/`) stay in the root dir. Both dimensions converge after asset gen onto the same
-gates. Two hard gates guard the deploy: **playtest** (aborts the build) and **local browser
-test** (aborts the deploy) — the `unity-buildship` agent returns the failure and the
-orchestrator drops back to the `unity-poc-gameplay` skill to fix, then re-spawns the agent.
-Asset gen is **never** a gate — missing/failed art degrades to a flat-color box (2D) or a
-primitive capsule (3D), blue paths; build still ships.
+Five build phases (2 skills + 3 agents) then two orchestrator post-phases (visual review,
+quality grade) back in the main loop; shared assets (`templates/*/`, `scripts/`, `references/`)
+stay in the root dir. Both dimensions converge after asset gen onto the same gates.
+**Four hard gates** now guard the ship: **playtest** (aborts the build) and **local browser
+test** (aborts the deploy) inside `unity-buildship`, then **visual review** (any readability
+FAIL blocks the ship) and **quality grade** (≤11 or a 0 in dims 1–4 = not shippable) run by the
+orchestrator on the returned screenshots. The buildship agent returns the failure (or the shots)
+and the orchestrator drops back to `unity-poc-gameplay` to fix — or to `unity-assets` to regen
+art — then re-spawns. Asset gen is **never** a gate — missing/failed art degrades to a
+flat-color box (2D) or a primitive capsule (3D), blue paths; build still ships.
 
 ## Scope honesty — bundled vs build-from-scratch
 
@@ -102,11 +123,13 @@ compiles → 6/6 playtest matchups → WebGL build → clean browser boot. See
 `references/fighter-framework.md` (2D) and `references/3d-framework.md` (3D). Don't promise
 "reuse the framework" for a non-fighter game.
 
-## Pipeline (five phases the root orchestrates — 2 skills + 3 agents)
+## Pipeline (five build phases + two orchestrator post-phases — 3 skills + 3 agents)
 
 > skill **`unity-poc-spec`** (1–3) · agent **`unity-scaffold`** (4–5) · agent
 > **`unity-assets`** (6) · skill **`unity-poc-gameplay`** (7) · agent **`unity-buildship`**
-> (8–13). Skill detail lives in each phase `SKILL.md`; agent detail in `.claude/agents/<name>.md`.
+> (8–13, + step 10b gameplay screenshots) · then the orchestrator runs **visual review** and
+> **quality grade** in the main loop on the returned shots. Skill detail lives in each phase
+> `SKILL.md`; agent detail in `.claude/agents/<name>.md`.
 
 1. **Analyze the brief** — genre, core loop, systems, roster, stages, controls, win
    condition. Confirm scope with `AskUserQuestion`. Generic briefs ("cozy mobile game")
@@ -137,12 +160,30 @@ compiles → 6/6 playtest matchups → WebGL build → clean browser boot. See
 10. **Local test (REQUIRED, gate)** — `scripts/local-test.sh <out>` serves the build,
     asserts `index/loader/wasm/data` all 200, then boots it in real Chrome via puppeteer to
     catch boot-time faults (stripped classes, dead UI) a curl/single screenshot misses.
+    **10b. Gameplay screenshots** — when the project ships a `gameplay-shots` config,
+    `scripts/gameplay-shots.mjs` drives the live build and captures shots (returned to the
+    orchestrator for step 14, and diffed vs `_baseline/` for regression).
 11. **Deploy** — `scripts/deploy-vercel.sh <out> <lowercase-name>` (runs local test, aborts
     on fail; one-time `npx vercel login`/`link`). Prints `https://…vercel.app`.
 12. **Verify public** — curl the live URL (200, not a login wall); confirm `*.loader.js`
     reachable.
 13. **`HANDOFF.md`** — systems, controls, known limits, next steps, and which assets are
     real vs flat-color fallback.
+
+**Orchestrator post-phases (main loop — need your eyes, so not agents):**
+
+14. **Visual review (REQUIRED, gate)** — Read the step-10b screenshots and LOOK: broken alpha
+    (checker boxes), invisible/default-font UI, floating or mis-scaled sprites, dead scenes.
+    The boot test proves it *runs*; only this catches it looking *wrong*. Then run the UI/UX
+    checklist (`references/uiux-review.md`): readability (contrast, state visibility, text
+    floor), hierarchy, feedback, style coherence, + baseline regression vs `_baseline/`. **Any
+    readability FAIL blocks the ship** — loop back to `unity-poc-gameplay` (code/presentation)
+    or `unity-assets` (regen art).
+15. **Quality grade** — score the shipped slice against `references/quality-rubric.md` (8
+    dimensions, 0–3, evidence per line); append the score block to `HANDOFF.md`, name the
+    biggest gap + next lever. **≤11 or any 0 in dims 1–4 = not shippable**, loop back. Then hand
+    the URL to the user with a playtest ask (fun? clear? fair? the ONE change?) to seed the next
+    iteration.
 
 ## Framework (reused per *fighter* job — `templates/fighter2d/Assets/Scripts/Framework/`)
 

@@ -53,6 +53,9 @@ unity/Assets/Art/
 # ── Stray nested clone (separate project, own .git) ──
 /template/
 
+# ── Standalone POC, not part of root pipeline ──
+/runner-shooter/
+
 # ── unity-poc pipeline outputs ──
 unity/output/
 
